@@ -1,0 +1,268 @@
+# ------------------------------------------------------------------
+#  AWPE Practice — main configuration
+#
+#  Placeholders usable in every text field below:
+#    {player} {online} {max_online} {kills} {deaths} {ping} {device}
+#    {health} {max_health} {arena} {arena_display} {arena_players}
+#    {distance} {killer} {victim}
+# ------------------------------------------------------------------
+
+# How often (in ticks) the scoreboard / bossbar / nametag are refreshed.
+update-interval: 20
+
+storage:
+  # leveldb (embedded database, recommended) or json (plain file).
+  # An unusable LevelDB store falls back to JSON instead of blocking startup.
+  provider: leveldb
+
+combat:
+  # Seconds a player stays "in combat" after dealing or taking a hit.
+  tag-duration: 10
+  # Refuse every command while a player is in combat (combat log protection).
+  block-commands: true
+  # Fall damage is normally off on a practice server.
+  disable-fall-damage: true
+  # Vanilla charges 5 fall damage when an ender pearl lands. This switch is
+  # separate so real falls can stay lethal while pearls do not hurt.
+  disable-ender-pearl-damage: true
+
+cooldowns:
+  # Item name => cooldown in seconds. 0 disables one.
+  items:
+    ender_pearl: 16
+
+messages:
+  join: "§a[+]§f{player}"
+  quit: "§4[-]§f{player}"
+  # Shown above the hotbar to the player who got hit.
+  hit-taken: "§f{player}: §e{distance}"
+  # Shown above the hotbar to the player who landed the hit.
+  hit-dealt: "§fDistance: §e{distance}"
+  ffa-join: "§7You joined §f{arena_display}§7."
+  ffa-leave: "§7You left the arena."
+  # {victim_pots} / {killer_pots} are the healing splash potions each side had left.
+  ffa-death: "§c{victim} §8[§b{victim_pots}§8] §7killed by §f{killer} §8[§b{killer_pots}§8]"
+  # Used by arenas that have no pot item configured (Fist, for example).
+  ffa-death-nopots: "§c{victim} §7killed by §f{killer}§7."
+  ffa-death-generic: "§c{victim} §7died."
+  combat-blocked: "§cYou cannot use commands in combat §7({seconds}s)§c."
+  cooldown-active: "§c{item} §7is on cooldown §8- §c{seconds}s"
+  players-only: "§cThis command can only be used in game."
+  already-in-lobby: "§7You are already in the lobby."
+  spawn-teleported: "§7Welcome back to the lobby."
+  rekit-done: "§7Kit restored."
+  rekit-unavailable: "§cYou can only do that inside an arena."
+  ffa-arena-unavailable: "§cThis arena is currently unavailable."
+  not-in-lobby: "§cYou can only do that from the lobby."
+  soon: "§7This feature is coming soon."
+
+scoreboard:
+  enabled: true
+  title: "§l§fAWPE"
+  # Slot: sidebar / list / belowname
+  slot: sidebar
+  lines:
+    lobby:
+      - "§fOnline:"
+      - "§e{online}"
+      - "§6 "
+      - "§fKills:"
+      - "§e{kills}"
+      - "§8 "
+      - "§fPing:"
+      - "§e{ping}ms"
+    ffa:
+      - "§fOnline:"
+      - "§e{online}"
+      - "§6 "
+      - "§fKills:"
+      - "§e{kills}"
+      - "§8 "
+      - "§fPing:"
+      - "§e{ping}ms"
+
+bossbar:
+  enabled: true
+  title: "§cAWPE §eBedrock"
+  # red / blue / green / yellow / purple / rebecca_purple / white
+  color: purple
+  percentage: 1.0
+
+nametag:
+  enabled: true
+  # Rendered under the player name (score tag).
+  format: "§e{ping} ms §8| §e{device} §8| §e{health}/{max_health}"
+  # Displayed name of every device, keyed by the protocol DeviceOS value.
+  devices:
+    android: "Android"
+    ios: "iOS"
+    osx: "macOS"
+    amazon: "FireOS"
+    gear_vr: "GearVR"
+    hololens: "Hololens"
+    windows_10: "Win10"
+    win32: "Windows"
+    dedicated: "Dedicated"
+    tvos: "tvOS"
+    playstation: "PS4"
+    nintendo: "Switch"
+    xbox: "Xbox"
+    windows_phone: "WinPhone"
+    linux: "Linux"
+    unknown: "Unknown"
+
+lobby:
+  # "default" uses the world configured as level-name in server.properties.
+  world: default
+  # survival / creative / adventure / spectator
+  gamemode: adventure
+  # Freeze the lobby world at midday.
+  lock-time: true
+  # Teleport a player back to spawn when he falls further than this below it.
+  void-level: 10
+  protection:
+    block-break: true
+    block-place: true
+    item-drop: true
+    item-pickup: true
+    inventory-transaction: true
+    damage: true
+    pvp: true
+    hunger: true
+    interact: true
+  # Hotbar contents of the lobby. The key is the action bound to the item.
+  # Available actions: ffa-selector, private-arenas, settings
+  items:
+    ffa-selector:
+      slot: 0
+      item: iron_axe
+      name: "§r§bFFA"
+      lore:
+        - "§7Tap to pick a free-for-all mode"
+    private-arenas:
+      slot: 1
+      item: clock
+      name: "§r§6Private arenas"
+      lore:
+        - "§7Coming soon"
+    settings:
+      slot: 8
+      item: book
+      name: "§r§aSettings"
+      lore:
+        - "§7Coming soon"
+
+ffa:
+  # Game mode players are put in while fighting.
+  gamemode: adventure
+  # Item counted for the kill feed. Leave empty to disable pot counting.
+  pot-item: strong_healing_splash_potion
+  # Default knockback for every arena; each arena may override any of these.
+  #   horizontal   sideways push (vanilla 0.4)
+  #   vertical     upwards push  (vanilla 0.4)
+  #   attack-delay ticks of damage immunity after a hit - the "tickrate" (vanilla 10)
+  knockback:
+    horizontal: 0.4
+    vertical: 0.4
+    attack-delay: 10
+  # Automatically create a missing arena world instead of disabling the arena.
+  auto-generate-worlds: true
+  generator: flat
+  form:
+    title: "§l§6-- Play --"
+    content: ""
+    button: "{arena_display}\n§e{arena_players} playing"
+  arenas:
+    gapple:
+      display: "§6Gapple FFA"
+      world: ffa_gapple
+      icon: "textures/items/apple_golden"
+      kit: gapple
+    nodebuff:
+      display: "§cNoDebuff FFA"
+      world: ffa_nodebuff
+      icon: "textures/items/potion_bottle_splash_heal"
+      kit: nodebuff
+      knockback:
+        horizontal: 0.4
+        vertical: 0.4
+        attack-delay: 10
+    fist:
+      display: "§eFist FFA"
+      world: ffa_fist
+      icon: "textures/items/leather"
+      kit: fist
+      # No potions in this mode, so the kill feed drops the counters.
+      pot-item: ""
+      knockback:
+        horizontal: 0.35
+        vertical: 0.35
+        attack-delay: 8
+
+# Kits referenced by ffa.arenas.*.kit
+#   armor:   helmet / chestplate / leggings / boots
+#   items:   list, optional "slot" pins an item to a hotbar slot
+#   effects: name => {amplifier, duration (seconds, -1 = infinite)}
+kits:
+  gapple:
+    armor:
+      helmet:
+        item: diamond_helmet
+        unbreakable: true
+        enchantments: {protection: 2}
+      chestplate:
+        item: diamond_chestplate
+        unbreakable: true
+        enchantments: {protection: 2}
+      leggings:
+        item: diamond_leggings
+        unbreakable: true
+        enchantments: {protection: 2}
+      boots:
+        item: diamond_boots
+        unbreakable: true
+        enchantments: {protection: 2}
+    items:
+      - item: diamond_sword
+        slot: 0
+        unbreakable: true
+        enchantments: {sharpness: 1}
+      - item: enchanted_golden_apple
+        slot: 1
+        count: 64
+      - item: cooked_beef
+        slot: 8
+        count: 16
+    effects: {}
+  nodebuff:
+    armor:
+      helmet:
+        item: diamond_helmet
+        unbreakable: true
+      chestplate:
+        item: diamond_chestplate
+        unbreakable: true
+      leggings:
+        item: diamond_leggings
+        unbreakable: true
+      boots:
+        item: diamond_boots
+        unbreakable: true
+    items:
+      - item: diamond_sword
+        slot: 0
+        unbreakable: true
+      - item: ender_pearl
+        slot: 1
+        count: 16
+      - item: strong_healing_splash_potion
+        count: 33
+        fill: true
+    effects:
+      speed:
+        amplifier: 0
+        duration: -1
+  fist:
+    armor: {}
+    items: []
+    effects: {}

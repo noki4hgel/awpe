@@ -1,0 +1,13 @@
+# Build output
+*.phar
+/build/
+
+# Runtime data (lives in the server's plugin_data, never in the plugin)
+/plugin_data/
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

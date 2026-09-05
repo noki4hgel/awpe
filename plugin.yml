@@ -1,0 +1,15 @@
+name: Awpe
+main: practice\Core
+version: 1.1.0
+api: 5.0.0
+load: POSTWORLD
+author: noki7ngel
+description: AWPE Practice core (lobby, FFA, scoreboard, bossbar, nametags)
+
+permissions:
+  awpe.command.spawn:
+    default: true
+    description: Return to the lobby with /spawn
+  awpe.command.rekit:
+    default: true
+    description: Get the arena kit again with /rekit

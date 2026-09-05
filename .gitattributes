@@ -1,0 +1,5 @@
+# Keep line endings stable across Windows and Linux checkouts.
+* text=auto eol=lf
+*.php text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
