@@ -31,6 +31,7 @@ src/practice/
     FFAManager.php          arena registry, join()/leave()/rekit(), arena picker form
     Arena.php               one arena: world, kit, knockback profile, pot counting
     KnockbackProfile.php    horizontal / vertical / attack-delay for one mode
+    KnockbackStore.php      persists what /kbdata changes (plugin_data/Awpe/knockback.yml)
     FFAListener.php         keeps arena terrain and kit items intact
     kit/Kit.php             an immutable loadout
     kit/KitFactory.php      builds kits from config
@@ -49,6 +50,7 @@ src/practice/
     PracticeCommand.php     base: player-only + session lookup
     SpawnCommand.php        /spawn (aliases /lobby, /hub)
     RekitCommand.php        /rekit (alias /kit)
+    KbDataCommand.php       /kbdata (alias /kb) - live knockback tuning, op only
 
   item/
     LobbyItemRegistry.php   builds the hotbar from config, resolves taps to actions
@@ -88,6 +90,20 @@ tuned apart through the damage event alone. `PracticePlayer` replaces
 `ffa.knockback` is the default; each arena overrides only the keys it names.
 The delay is applied through `EntityDamageEvent::setAttackCooldown()`.
 
+### Tuning it live
+
+```
+/kbdata                                          list every mode
+/kbdata <mode>                                   show one mode
+/kbdata <mode> <vertical> <horizontal> <delay>   change it
+/kbdata <mode> reset                             back to config.yml
+```
+
+Op only, and it also runs from the console. A change applies instantly to
+everyone already in the arena and is written to `plugin_data/Awpe/knockback.yml`,
+which is layered over `config.yml` on the next start — so config.yml keeps its
+comments and `reset` simply drops the override.
+
 ## Adding things
 
 * **A lobby item** — implement `LobbyItemHandler`, register it in `Core::registerLobbyItems()`,
@@ -98,5 +114,6 @@ The delay is applied through `EntityDamageEvent::setAttackCooldown()`.
 * **An item cooldown** — one line under `cooldowns.items`: `<item name>: <seconds>`.
 * **A placeholder** — add it to `PlaceholderProvider::forSession()`; it becomes available
   in the scoreboard, boss bar, nametag and every message at once.
-* **A command** — extend `PracticeCommand`, declare its permission in `plugin.yml`
-  and register it in `Core::registerCommands()`.
+* **A command** — extend `PracticeCommand` (player-only, gets a `Session`) or plain
+  `Command` for a server-level one like `/kbdata`, declare its permission in
+  `plugin.yml` and register it in `Core::registerCommands()`.

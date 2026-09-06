@@ -44,15 +44,18 @@ final class FFAManager{
 
 	private readonly GameMode $gameMode;
 	private readonly KnockbackProfile $defaultKnockback;
+	private readonly KnockbackStore $knockbackStore;
 
 	public function __construct(
 		private readonly Core $plugin,
 		private readonly PracticeConfig $config,
 		private readonly SessionManager $sessions,
-		private readonly LobbyManager $lobby
+		private readonly LobbyManager $lobby,
+		KnockbackStore $knockbackStore
 	){
 		$this->gameMode = PlayerUtil::gameModeFromString($config->getString("ffa.gamemode", "adventure"));
 		$this->defaultKnockback = KnockbackProfile::fromConfig($config->getArray("ffa.knockback"));
+		$this->knockbackStore = $knockbackStore;
 		$this->loadKits();
 		$this->loadArenas();
 	}
@@ -196,6 +199,45 @@ final class FFAManager{
 	}
 
 	/**
+	 * Changes an arena's knockback while the server runs and remembers it.
+	 *
+	 * Players already fighting in the arena get the new feel immediately —
+	 * their profile is per-player state, so it has to be pushed to each of them.
+	 */
+	public function setArenaKnockback(Arena $arena, KnockbackProfile $profile) : void{
+		$arena->setKnockback($profile);
+		$this->knockbackStore->set($arena->getId(), $profile);
+		$this->refreshKnockback($arena);
+	}
+
+	/**
+	 * Drops the runtime override and goes back to what config.yml says.
+	 *
+	 * @return KnockbackProfile the profile now in force
+	 */
+	public function resetArenaKnockback(Arena $arena) : KnockbackProfile{
+		$this->knockbackStore->remove($arena->getId());
+
+		$data = $this->config->getArray("ffa.arenas." . $arena->getId() . ".knockback");
+		$profile = KnockbackProfile::fromConfig($data, $this->defaultKnockback);
+
+		$arena->setKnockback($profile);
+		$this->refreshKnockback($arena);
+
+		return $profile;
+	}
+
+	public function hasKnockbackOverride(Arena $arena) : bool{
+		return $this->knockbackStore->has($arena->getId());
+	}
+
+	private function refreshKnockback(Arena $arena) : void{
+		foreach($arena->getPlayers() as $session){
+			$this->applyKnockback($session->getPlayer(), $arena->getKnockback());
+		}
+	}
+
+	/**
 	 * Knockback is per-player state, so it only applies to the player class the
 	 * core installs; a foreign Player implementation simply keeps vanilla feel.
 	 */
@@ -290,8 +332,9 @@ final class FFAManager{
 				$worldName,
 				is_string($data["icon"] ?? null) ? $data["icon"] : "",
 				$kit,
-				//Arenas inherit ffa.knockback and override only what they name.
-				KnockbackProfile::fromConfig(is_array($data["knockback"] ?? null) ? $data["knockback"] : [], $this->defaultKnockback),
+				//Arenas inherit ffa.knockback and override only what they name;
+				//anything changed live with /kbdata is layered on top of that.
+				$this->knockbackStore->apply($id, KnockbackProfile::fromConfig(is_array($data["knockback"] ?? null) ? $data["knockback"] : [], $this->defaultKnockback)),
 				$this->resolvePotItem($data, $id, $logger)
 			);
 

@@ -32,6 +32,7 @@ use practice\bossbar\BossBarManager;
 use practice\combat\CombatListener;
 use practice\combat\CombatLogListener;
 use practice\combat\CombatManager;
+use practice\command\KbDataCommand;
 use practice\command\RekitCommand;
 use practice\command\SpawnCommand;
 use practice\cooldown\CooldownListener;
@@ -39,6 +40,7 @@ use practice\cooldown\CooldownManager;
 use practice\cooldown\ItemCooldowns;
 use practice\ffa\FFAListener;
 use practice\ffa\FFAManager;
+use practice\ffa\KnockbackStore;
 use practice\item\ItemListener;
 use practice\item\LobbyItemRegistry;
 use practice\item\types\FFASelectorHandler;
@@ -56,6 +58,7 @@ use practice\stats\StatsProvider;
 use practice\stats\StatsProviderFactory;
 use practice\task\HeartbeatTask;
 use practice\world\VoidGenerator;
+use Symfony\Component\Filesystem\Path;
 use function count;
 use function implode;
 use function is_dir;
@@ -72,6 +75,9 @@ use function mkdir;
 final class Core extends PluginBase{
 
 	private const TICKS_PER_SECOND = 20;
+
+	/** Knockback values changed live with /kbdata, kept out of the commented config.yml. */
+	private const KNOCKBACK_FILE = "knockback.yml";
 
 	private static ?Core $instance = null;
 
@@ -136,7 +142,13 @@ final class Core extends PluginBase{
 
 		$this->lobbyItems = new LobbyItemRegistry();
 		$this->lobby = new LobbyManager($this, $this->practiceConfig, $this->sessions, $this->lobbyItems);
-		$this->ffa = new FFAManager($this, $this->practiceConfig, $this->sessions, $this->lobby);
+		$this->ffa = new FFAManager(
+			$this,
+			$this->practiceConfig,
+			$this->sessions,
+			$this->lobby,
+			new KnockbackStore(Path::join($dataFolder, self::KNOCKBACK_FILE))
+		);
 
 		$this->registerLobbyItems();
 		$this->registerItemCooldowns();
@@ -251,7 +263,8 @@ final class Core extends PluginBase{
 	private function registerCommands() : void{
 		$this->getServer()->getCommandMap()->registerAll($this->getName(), [
 			new SpawnCommand($this->practiceConfig, $this->sessions, $this->ffa),
-			new RekitCommand($this->practiceConfig, $this->sessions, $this->ffa)
+			new RekitCommand($this->practiceConfig, $this->sessions, $this->ffa),
+			new KbDataCommand($this->practiceConfig, $this->ffa)
 		]);
 	}
 

@@ -29,7 +29,7 @@ final class Arena{
 		private readonly string $worldName,
 		private readonly string $icon,
 		private readonly Kit $kit,
-		private readonly KnockbackProfile $knockback,
+		private KnockbackProfile $knockback,
 		private readonly ?Item $potItem = null,
 		private ?World $world = null
 	){
@@ -57,6 +57,14 @@ final class Arena{
 
 	public function getKnockback() : KnockbackProfile{
 		return $this->knockback;
+	}
+
+	/**
+	 * Swapped at runtime by /kbdata. FFAManager is responsible for pushing the
+	 * new profile onto the players already fighting here.
+	 */
+	public function setKnockback(KnockbackProfile $knockback) : void{
+		$this->knockback = $knockback;
 	}
 
 	public function getWorld() : ?World{

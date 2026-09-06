@@ -13,3 +13,6 @@ permissions:
   awpe.command.rekit:
     default: true
     description: Get the arena kit again with /rekit
+  awpe.command.kbdata:
+    default: op
+    description: Read and change a mode's knockback with /kbdata
