@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace practice\stats;
+namespace practice\data;
 
 use Symfony\Component\Filesystem\Path;
 use function strtolower;
@@ -11,13 +11,13 @@ use function strtolower;
  * Picks the storage backend named in the config, falling back to JSON when the
  * preferred one cannot be opened so a broken database never blocks startup.
  */
-final class StatsProviderFactory{
+final class DataProviderFactory{
 
 	public const TYPE_LEVELDB = "leveldb";
 	public const TYPE_JSON = "json";
 
-	private const LEVELDB_DIRECTORY = "stats.ldb";
-	private const JSON_FILE = "stats.json";
+	private const LEVELDB_DIRECTORY = "players.ldb";
+	private const JSON_FILE = "players.json";
 
 	private function __construct(){
 		//NOOP
@@ -26,10 +26,10 @@ final class StatsProviderFactory{
 	/**
 	 * @phpstan-param (\Closure(string) : void)|null $onFallback
 	 */
-	public static function create(string $type, string $dataFolder, ?\Closure $onFallback = null) : StatsProvider{
+	public static function create(string $type, string $dataFolder, ?\Closure $onFallback = null) : DataProvider{
 		if(strtolower($type) === self::TYPE_LEVELDB){
 			try{
-				return new LevelDbStatsProvider(Path::join($dataFolder, self::LEVELDB_DIRECTORY));
+				return new LevelDbDataProvider(Path::join($dataFolder, self::LEVELDB_DIRECTORY));
 			}catch(\Throwable $e){
 				if($onFallback !== null){
 					$onFallback($e->getMessage());
@@ -37,6 +37,6 @@ final class StatsProviderFactory{
 			}
 		}
 
-		return new JsonStatsProvider(Path::join($dataFolder, self::JSON_FILE));
+		return new JsonDataProvider(Path::join($dataFolder, self::JSON_FILE));
 	}
 }

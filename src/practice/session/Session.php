@@ -7,8 +7,8 @@ namespace practice\session;
 use pocketmine\player\Player;
 use practice\bossbar\BossBar;
 use practice\scoreboard\Scoreboard;
-use practice\stats\PlayerStats;
-use practice\stats\StatsProvider;
+use practice\data\DataProvider;
+use practice\data\PlayerData;
 use practice\util\DeviceUtil;
 use function is_int;
 use function is_string;
@@ -27,13 +27,13 @@ final class Session{
 	private readonly string $deviceKey;
 	private readonly Scoreboard $scoreboard;
 	private readonly BossBar $bossBar;
-	private readonly PlayerStats $stats;
+	private readonly PlayerData $data;
 	private ?string $lastNameTag = null;
 	private int $pearlLandTick = -1;
 
 	public function __construct(
 		private readonly Player $player,
-		private readonly StatsProvider $statsProvider,
+		private readonly DataProvider $dataProvider,
 		string $scoreboardSlot = Scoreboard::SLOT_SIDEBAR
 	){
 		$extraData = $player->getPlayerInfo()->getExtraData();
@@ -43,7 +43,7 @@ final class Session{
 		$this->deviceKey = DeviceUtil::keyOf($deviceOs, $deviceModel);
 		$this->scoreboard = new Scoreboard($player->getNetworkSession(), $scoreboardSlot);
 		$this->bossBar = new BossBar($player);
-		$this->stats = $statsProvider->load($player->getName());
+		$this->data = $dataProvider->load($player->getName());
 	}
 
 	public function getPlayer() : Player{
@@ -94,24 +94,27 @@ final class Session{
 		return $this->player->getNetworkSession()->getPing() ?? 0;
 	}
 
-	public function getStats() : PlayerStats{
-		return $this->stats;
+	/**
+	 * The player's stored record: counters, rank and settings.
+	 */
+	public function getData() : PlayerData{
+		return $this->data;
 	}
 
 	public function getKills() : int{
-		return $this->stats->getKills();
+		return $this->data->getKills();
 	}
 
 	public function getDeaths() : int{
-		return $this->stats->getDeaths();
+		return $this->data->getDeaths();
 	}
 
 	public function addKill() : void{
-		$this->stats->addKill();
+		$this->data->addKill();
 	}
 
 	public function addDeath() : void{
-		$this->stats->addDeath();
+		$this->data->addDeath();
 	}
 
 	/**
@@ -141,6 +144,8 @@ final class Session{
 	}
 
 	public function save() : void{
-		$this->statsProvider->save($this->getName(), $this->stats);
+		//Keep the stored casing in step with how the player spells his name.
+		$this->data->setName($this->getName());
+		$this->dataProvider->save($this->getName(), $this->data);
 	}
 }

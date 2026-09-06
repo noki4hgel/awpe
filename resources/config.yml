@@ -10,10 +10,28 @@
 # How often (in ticks) the scoreboard / bossbar / nametag are refreshed.
 update-interval: 20
 
+server:
+  # Practice servers have no use for the food bar; cancelling exhaustion keeps
+  # it permanently full everywhere, arenas included.
+  disable-hunger: true
+
 storage:
   # leveldb (embedded database, recommended) or json (plain file).
   # An unusable LevelDB store falls back to JSON instead of blocking startup.
   provider: leveldb
+
+potions:
+  # Vanilla measures a splash from the victim's EYES and loses potency from the
+  # moment of impact, so a pot at your own feet heals barely 60%. Everything
+  # within full-effect-range gets the whole effect instead, which is the pot
+  # behaviour practice players expect.
+  full-effect-range: 1.75
+  # Blocks the splash reaches at all.
+  range: 4.0
+  gravity: 0.065
+  drag: 0.01
+  # Visual size of the thrown bottle.
+  scale: 0.4
 
 combat:
   # Seconds a player stays "in combat" after dealing or taking a hit.
@@ -25,6 +43,9 @@ combat:
   # Vanilla charges 5 fall damage when an ender pearl lands. This switch is
   # separate so real falls can stay lethal while pearls do not hurt.
   disable-ender-pearl-damage: true
+  # Cosmetic lightning where a player dies on FFA. Viewers can still turn it
+  # off for themselves in the settings menu.
+  lightning-on-kill: true
 
 cooldowns:
   # Item name => cooldown in seconds. 0 disables one.
@@ -32,8 +53,8 @@ cooldowns:
     ender_pearl: 16
 
 messages:
-  join: "§a[+]§f{player}"
-  quit: "§4[-]§f{player}"
+  join: "§a[+] §f{player}"
+  quit: "§4[-] §f{player}"
   # Shown above the hotbar to the player who got hit.
   hit-taken: "§f{player}: §e{distance}"
   # Shown above the hotbar to the player who landed the hit.
@@ -61,9 +82,94 @@ messages:
   kb-unknown-mode: "§cUnknown mode §f{mode}§c. Available: §f{modes}"
   kb-invalid-number: "§f{value} §cis not a valid number."
   kb-out-of-range: "§cOut of range §8(push 0-{max_push}, delay 0-{max_delay})§c."
+  # /rank
+  rank-usage: "§7Usage: §f/rank <player> [rank]"
+  rank-available: "§7Ranks: §f{ranks}"
+  rank-show: "§f{player} §7is §f{rank}§7."
+  rank-updated: "§f{player} §7is now §f{rank}§7."
+  rank-received: "§7Your rank is now §f{rank}§7."
+  rank-unknown: "§cUnknown rank §f{rank}§c. Available: §f{ranks}"
+  rank-too-high: "§cYou cannot hand out §f{rank}§c."
+  rank-player-offline: "§f{player} §cis not online."
+  # Settings menu
+  settings-saved: "§aSettings saved."
+  settings-empty: "§cThere is nothing to configure here."
+  # Action bar read-out, shown while the player is not in combat.
+  cps-counter: "§7CPS: §f{cps}"
   ffa-arena-unavailable: "§cThis arena is currently unavailable."
   not-in-lobby: "§cYou can only do that from the lobby."
   soon: "§7This feature is coming soon."
+
+settings:
+  # Menu opened by the lobby book. Sections and entries below are free-form:
+  # add a section, tag settings with its id, and both appear in the menu.
+  form:
+    title: "§l§bSettings"
+    content: "§7Pick a section"
+    section-title: "§l{section}"
+    toggle: "{display}
+§7{description}"
+  sections:
+    gameplay:
+      display: "§aGameplay"
+      icon: "textures/ui/icon_recipe_equipment"
+    visual:
+      display: "§bVisual"
+      icon: "textures/ui/icon_setting"
+  # The ids are the ones the code reacts to - renaming one turns its feature
+  # back to the default. Everything else here is free to change.
+  entries:
+    auto-respawn:
+      section: gameplay
+      display: "Auto respawn"
+      description: "Jump straight back into the arena instead of the lobby"
+      default: true
+    hit-distance:
+      section: gameplay
+      display: "Hit distance"
+      description: "Show the reach of every hit above the hotbar"
+      default: true
+    scoreboard:
+      section: visual
+      display: "Scoreboard"
+      description: "Sidebar with online, kills and ping"
+      default: true
+    bossbar:
+      section: visual
+      display: "Boss bar"
+      description: "Server bar at the top of the screen"
+      default: true
+    nametag:
+      section: visual
+      display: "Nametag"
+      description: "Show your ping, device and health under your name"
+      default: true
+    cps-counter:
+      section: visual
+      display: "CPS counter"
+      description: "Clicks per second above the hotbar, outside combat"
+      default: false
+    lightning-on-kill:
+      section: visual
+      display: "Kill lightning"
+      description: "Lightning strike where a player dies"
+      default: true
+
+leaderboards:
+  enabled: true
+  # Floating boards in the lobby. "field" is the counter to rank by; "kills"
+  # and "deaths" are what the core stores today.
+  boards:
+    kills:
+      # Leave "world" out to use the lobby world.
+      x: 0.5
+      y: 70.0
+      z: 0.5
+      field: kills
+      limit: 10
+      title: "§l§6Top Kills§r"
+      entry: "§7{position}. §f{player} §8- §b{value}"
+      empty: "§8- nobody yet -"
 
 scoreboard:
   enabled: true
@@ -264,13 +370,15 @@ kits:
       - item: ender_pearl
         slot: 1
         count: 16
+      - item: long_swiftness_potion
+        slot: 8
       - item: strong_healing_splash_potion
-        count: 33
+        count: 1
         fill: true
-    effects:
-      speed:
-        amplifier: 0
-        duration: -1
+      #effects:
+      #speed:
+      #  amplifier: 0
+      # duration: -1
   fist:
     armor: {}
     items: []

@@ -27,17 +27,25 @@ declare(strict_types=1);
 namespace practice;
 
 use pocketmine\plugin\PluginBase;
+use pocketmine\utils\Config;
 use pocketmine\world\generator\GeneratorManager;
 use practice\bossbar\BossBarManager;
+use practice\combat\ClickTracker;
 use practice\combat\CombatListener;
 use practice\combat\CombatLogListener;
 use practice\combat\CombatManager;
 use practice\command\KbDataCommand;
+use practice\command\RankCommand;
 use practice\command\RekitCommand;
 use practice\command\SpawnCommand;
 use practice\cooldown\CooldownListener;
 use practice\cooldown\CooldownManager;
 use practice\cooldown\ItemCooldowns;
+use practice\data\DataProvider;
+use practice\data\DataProviderFactory;
+use practice\entity\EntityRegistry;
+use practice\entity\PotionSettings;
+use practice\entity\PracticeSplashPotion;
 use practice\ffa\FFAListener;
 use practice\ffa\FFAManager;
 use practice\ffa\KnockbackStore;
@@ -46,16 +54,21 @@ use practice\item\LobbyItemRegistry;
 use practice\item\types\FFASelectorHandler;
 use practice\item\types\PrivateArenaHandler;
 use practice\item\types\SettingsHandler;
+use practice\leaderboard\LeaderboardManager;
 use practice\lobby\LobbyListener;
 use practice\lobby\LobbyManager;
 use practice\nametag\NameTagManager;
 use practice\player\PlayerFactoryListener;
+use practice\player\PlayerRulesListener;
+use practice\rank\RankListener;
+use practice\rank\RankManager;
+use practice\rank\RankRegistry;
 use practice\scoreboard\Scoreboard;
 use practice\scoreboard\ScoreboardManager;
 use practice\session\SessionListener;
 use practice\session\SessionManager;
-use practice\stats\StatsProvider;
-use practice\stats\StatsProviderFactory;
+use practice\settings\SettingRegistry;
+use practice\settings\SettingsMenu;
 use practice\task\HeartbeatTask;
 use practice\world\VoidGenerator;
 use Symfony\Component\Filesystem\Path;
@@ -78,18 +91,25 @@ final class Core extends PluginBase{
 
 	/** Knockback values changed live with /kbdata, kept out of the commented config.yml. */
 	private const KNOCKBACK_FILE = "knockback.yml";
+	private const RANKS_FILE = "ranks.yml";
 
 	private static ?Core $instance = null;
 
 	private PracticeConfig $practiceConfig;
-	private StatsProvider $stats;
+	private DataProvider $data;
 	private SessionManager $sessions;
 	private CombatManager $combat;
 	private CooldownManager $cooldowns;
 	private ItemCooldowns $itemCooldowns;
+	private ClickTracker $clicks;
+	private RankRegistry $rankRegistry;
+	private RankManager $ranks;
+	private SettingRegistry $settingRegistry;
+	private SettingsMenu $settingsMenu;
 	private LobbyItemRegistry $lobbyItems;
 	private LobbyManager $lobby;
 	private FFAManager $ffa;
+	private LeaderboardManager $leaderboards;
 	private PlaceholderProvider $placeholders;
 	private ScoreboardManager $scoreboards;
 	private BossBarManager $bossBars;
@@ -101,7 +121,8 @@ final class Core extends PluginBase{
 
 	/**
 	 * Runs before any world is loaded, which is the only point at which a
-	 * generator can still be registered for worlds the server loads itself.
+	 * generator or an entity can still be registered for worlds and chunks the
+	 * server loads itself.
 	 */
 	protected function onLoad() : void{
 		$generatorManager = GeneratorManager::getInstance();
@@ -110,6 +131,8 @@ final class Core extends PluginBase{
 			//generator in level.dat; without it the world refuses to load.
 			$generatorManager->addGenerator(VoidGenerator::class, VoidGenerator::NAME, fn() => null);
 		}
+
+		EntityRegistry::register();
 	}
 
 	protected function onEnable() : void{
@@ -123,13 +146,15 @@ final class Core extends PluginBase{
 			mkdir($dataFolder, 0777, true);
 		}
 
-		$this->stats = StatsProviderFactory::create(
-			$this->practiceConfig->getString("storage.provider", StatsProviderFactory::TYPE_LEVELDB),
+		PracticeSplashPotion::setSettings(PotionSettings::fromConfig($this->practiceConfig->getArray("potions")));
+
+		$this->data = DataProviderFactory::create(
+			$this->practiceConfig->getString("storage.provider", DataProviderFactory::TYPE_LEVELDB),
 			$dataFolder,
 			fn(string $reason) => $this->getLogger()->warning("Could not open the LevelDB store; falling back to JSON. Reason: " . $reason)
 		);
 		$this->sessions = new SessionManager(
-			$this->stats,
+			$this->data,
 			$this->practiceConfig->getString("scoreboard.slot", Scoreboard::SLOT_SIDEBAR)
 		);
 
@@ -139,6 +164,10 @@ final class Core extends PluginBase{
 		);
 		$this->cooldowns = new CooldownManager($this->getServer());
 		$this->itemCooldowns = new ItemCooldowns();
+		$this->clicks = new ClickTracker($this->getServer());
+
+		$this->registerRanks();
+		$this->registerSettings();
 
 		$this->lobbyItems = new LobbyItemRegistry();
 		$this->lobby = new LobbyManager($this, $this->practiceConfig, $this->sessions, $this->lobbyItems);
@@ -152,11 +181,12 @@ final class Core extends PluginBase{
 
 		$this->registerLobbyItems();
 		$this->registerItemCooldowns();
+		$this->registerLeaderboards();
 
-		$this->placeholders = new PlaceholderProvider($this->getServer(), $this->practiceConfig, $this->ffa, $this->combat);
-		$this->scoreboards = new ScoreboardManager($this->practiceConfig, $this->placeholders);
-		$this->bossBars = new BossBarManager($this->practiceConfig, $this->placeholders);
-		$this->nameTags = new NameTagManager($this->practiceConfig, $this->placeholders);
+		$this->placeholders = new PlaceholderProvider($this->getServer(), $this->practiceConfig, $this->ffa, $this->combat, $this->clicks, $this->ranks);
+		$this->scoreboards = new ScoreboardManager($this->practiceConfig, $this->placeholders, $this->settingRegistry);
+		$this->bossBars = new BossBarManager($this->practiceConfig, $this->placeholders, $this->settingRegistry);
+		$this->nameTags = new NameTagManager($this->practiceConfig, $this->placeholders, $this->settingRegistry, $this->ranks);
 
 		$this->registerListeners();
 		$this->registerCommands();
@@ -177,7 +207,7 @@ final class Core extends PluginBase{
 		}
 
 		$this->sessions->saveAll();
-		$this->stats->close();
+		$this->data->close();
 		self::$instance = null;
 	}
 
@@ -205,6 +235,26 @@ final class Core extends PluginBase{
 		return $this->cooldowns;
 	}
 
+	public function getClickTracker() : ClickTracker{
+		return $this->clicks;
+	}
+
+	public function getRankManager() : RankManager{
+		return $this->ranks;
+	}
+
+	public function getSettingRegistry() : SettingRegistry{
+		return $this->settingRegistry;
+	}
+
+	public function getSettingsMenu() : SettingsMenu{
+		return $this->settingsMenu;
+	}
+
+	public function getLeaderboardManager() : LeaderboardManager{
+		return $this->leaderboards;
+	}
+
 	public function getLobbyItemRegistry() : LobbyItemRegistry{
 		return $this->lobbyItems;
 	}
@@ -225,10 +275,38 @@ final class Core extends PluginBase{
 		return $this->placeholders;
 	}
 
+	private function registerRanks() : void{
+		$this->saveResource(self::RANKS_FILE);
+
+		$this->rankRegistry = new RankRegistry();
+		$failed = $this->rankRegistry->loadFromConfig(new Config(Path::join($this->getDataFolder(), self::RANKS_FILE), Config::YAML, []));
+		if(count($failed) > 0){
+			$this->getLogger()->warning("Ignored malformed rank(s): " . implode(", ", $failed));
+		}
+		if($this->rankRegistry->getDefault() === null){
+			$this->getLogger()->warning("No ranks are defined; chat formatting and /rank will do nothing.");
+		}
+
+		$this->ranks = new RankManager($this, $this->rankRegistry);
+	}
+
+	private function registerSettings() : void{
+		$this->settingRegistry = new SettingRegistry();
+		$failed = $this->settingRegistry->loadFromConfig(
+			$this->practiceConfig->getArray("settings.sections"),
+			$this->practiceConfig->getArray("settings.entries")
+		);
+		if(count($failed) > 0){
+			$this->getLogger()->warning("Ignored setting(s) with an unknown section or shape: " . implode(", ", $failed));
+		}
+
+		$this->settingsMenu = new SettingsMenu($this->practiceConfig, $this->settingRegistry, $this->sessions);
+	}
+
 	private function registerLobbyItems() : void{
 		$this->lobbyItems->register(new FFASelectorHandler($this->ffa, $this->practiceConfig));
 		$this->lobbyItems->register(new PrivateArenaHandler($this->practiceConfig));
-		$this->lobbyItems->register(new SettingsHandler($this->practiceConfig));
+		$this->lobbyItems->register(new SettingsHandler($this->settingsMenu));
 
 		$failed = $this->lobbyItems->loadFromConfig($this->practiceConfig->getArray("lobby.items"));
 		if(count($failed) > 0){
@@ -243,17 +321,29 @@ final class Core extends PluginBase{
 		}
 	}
 
+	private function registerLeaderboards() : void{
+		$this->leaderboards = new LeaderboardManager($this->getServer(), $this->practiceConfig, $this->data);
+
+		$lobbyWorld = $this->lobby->getWorld();
+		$failed = $this->leaderboards->loadFromConfig($lobbyWorld?->getFolderName() ?? "");
+		if(count($failed) > 0){
+			$this->getLogger()->warning("Ignored leaderboard(s) with an unknown world or shape: " . implode(", ", $failed));
+		}
+	}
+
 	private function registerListeners() : void{
 		$pluginManager = $this->getServer()->getPluginManager();
 
 		foreach([
 			new PlayerFactoryListener(),
-			new SessionListener($this->practiceConfig, $this->sessions, $this->lobby, $this->ffa, $this->combat, $this->cooldowns, $this->scoreboards, $this->bossBars, $this->nameTags),
+			new PlayerRulesListener($this->practiceConfig, $this->clicks),
+			new SessionListener($this->practiceConfig, $this->sessions, $this->lobby, $this->ffa, $this->combat, $this->cooldowns, $this->clicks, $this->ranks, $this->scoreboards, $this->bossBars, $this->nameTags, $this->leaderboards),
+			new RankListener($this->ranks, $this->sessions),
 			new ItemListener($this->lobbyItems, $this->sessions),
 			new CooldownListener($this->practiceConfig, $this->cooldowns, $this->itemCooldowns, $this->getScheduler()),
 			new LobbyListener($this->lobby, $this->sessions),
 			new FFAListener($this->ffa),
-			new CombatListener($this->getServer(), $this->practiceConfig, $this->sessions, $this->ffa, $this->combat),
+			new CombatListener($this->getServer(), $this->practiceConfig, $this->sessions, $this->ffa, $this->combat, $this->settingRegistry, $this->clicks),
 			new CombatLogListener($this->practiceConfig, $this->combat)
 		] as $listener){
 			$pluginManager->registerEvents($listener, $this);
@@ -264,13 +354,24 @@ final class Core extends PluginBase{
 		$this->getServer()->getCommandMap()->registerAll($this->getName(), [
 			new SpawnCommand($this->practiceConfig, $this->sessions, $this->ffa),
 			new RekitCommand($this->practiceConfig, $this->sessions, $this->ffa),
-			new KbDataCommand($this->practiceConfig, $this->ffa)
+			new KbDataCommand($this->practiceConfig, $this->ffa),
+			new RankCommand($this->practiceConfig, $this->sessions, $this->ranks, $this->getServer())
 		]);
 	}
 
 	private function scheduleTasks() : void{
 		$this->getScheduler()->scheduleRepeatingTask(
-			new HeartbeatTask($this->sessions, $this->scoreboards, $this->bossBars, $this->nameTags),
+			new HeartbeatTask(
+				$this->practiceConfig,
+				$this->sessions,
+				$this->scoreboards,
+				$this->bossBars,
+				$this->nameTags,
+				$this->leaderboards,
+				$this->settingRegistry,
+				$this->combat,
+				$this->clicks
+			),
 			$this->practiceConfig->getUpdateInterval()
 		);
 	}
@@ -282,7 +383,9 @@ final class Core extends PluginBase{
 	private function adoptOnlinePlayers() : void{
 		foreach($this->getServer()->getOnlinePlayers() as $player){
 			$session = $this->sessions->open($player);
+			$this->ranks->apply($session);
 			$this->lobby->join($session);
+			$this->leaderboards->sendTo($player);
 		}
 	}
 }

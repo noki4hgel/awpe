@@ -22,6 +22,7 @@ src/practice/
   player/
     PracticePlayer.php      Player subclass; exists only to make knockback tunable
     PlayerFactoryListener   installs it via PlayerCreationEvent
+    PlayerRulesListener     server-wide rules (hunger off, click counting)
 
   lobby/
     LobbyManager.php        isInLobby(), join(), teleport(), sendItems(), shouldProtect()
@@ -37,9 +38,10 @@ src/practice/
     kit/KitFactory.php      builds kits from config
 
   combat/
-    CombatListener.php      hit distance, fall & pearl damage rules, kills, deaths
+    CombatListener.php      hit distance, damage rules, kills, deaths, kill lightning
     CombatManager.php       combat tag (who is fighting, for how much longer)
     CombatLogListener.php   blocks commands while tagged
+    ClickTracker.php        clicks over a one second window, for the CPS read-out
 
   cooldown/
     CooldownManager.php     named per-player timers
@@ -51,20 +53,47 @@ src/practice/
     SpawnCommand.php        /spawn (aliases /lobby, /hub)
     RekitCommand.php        /rekit (alias /kit)
     KbDataCommand.php       /kbdata (alias /kb) - live knockback tuning, op only
+    RankCommand.php         /rank - read and assign ranks, op only
 
   item/
+    PracticeSplashPotion    item that throws the practice-tuned projectile
+    ItemSubstitutions.php   the one place that swaps a vanilla item for ours
     LobbyItemRegistry.php   builds the hotbar from config, resolves taps to actions
     LobbyItem.php           slot + tagged item stack
     LobbyItemHandler.php    interface implemented by item/types/*
     ItemListener.php        turns a tap into the bound action
     types/                  FFA selector (axe), private arenas (clock), settings (book)
 
-  stats/
-    StatsProvider.php       storage interface
-    LevelDbStatsProvider    default backend (plugin_data/Awpe/stats.ldb)
-    JsonStatsProvider       fallback backend
-    StatsProviderFactory    picks one, falls back instead of blocking startup
-    PlayerStats.php         the counters themselves
+  data/
+    PlayerData.php          one record per player: counters, rank, settings
+    DataProvider.php        storage interface, incl. the leaderboard top-N query
+    LevelDbDataProvider     default backend (plugin_data/Awpe/players.ldb)
+    JsonDataProvider        fallback backend
+    DataProviderFactory     picks one, falls back instead of blocking startup
+
+  rank/
+    Rank.php                display, colour, chat/nametag format, permissions
+    RankRegistry.php        ranks.yml, ordered by priority
+    RankManager.php         reads/assigns ranks and grants their permissions
+    RankChatFormatter       renders a chat line through the sender's rank
+    RankListener.php        chat formatting, attachment cleanup
+
+  settings/
+    Settings.php            the ids the code reacts to
+    SettingSection.php      a tab of the menu (from config)
+    Setting.php             one toggle (from config)
+    SettingRegistry.php     lookup + per-player values with proper defaults
+    SettingsMenu.php        section picker, then the toggles
+
+  leaderboard/
+    Leaderboard.php         one floating board: where, what it ranks, how it reads
+    LeaderboardManager.php  renders and pushes them to lobby players
+
+  entity/
+    PracticeSplashPotion    splash potion with practice potency
+    PotionSettings.php      range / full-effect range / physics
+    PracticeLightningBolt   cosmetic strike, shown per viewer
+    EntityRegistry.php      registers both with the server
 
   scoreboard/               sidebar: Scoreboard (packets) + ScoreboardManager (content)
   bossbar/                  boss bar: BossBar (packets) + BossBarManager (content)
@@ -104,6 +133,37 @@ everyone already in the arena and is written to `plugin_data/Awpe/knockback.yml`
 which is layered over `config.yml` on the next start — so config.yml keeps its
 comments and `reset` simply drops the override.
 
+## Potions
+
+Vanilla measures a splash from the victim's **eyes** and loses potency from the
+moment of impact, so a pot at your own feet heals about 60% of its value. The
+core measures from the feet and gives the full effect inside
+`potions.full-effect-range`, which is the behaviour practice players expect.
+`ItemParser` swaps every vanilla splash potion for the practice one, so kits and
+the pot counter never have to know.
+
+## Ranks
+
+`ranks.yml` defines the ladder; the lowest `priority` is the default rank. A
+rank carries its chat format, its nametag format and its permissions, which are
+granted through a `PermissionAttachment` on join and released on quit. `/rank`
+will not hand out anything at or above the sender's own rank (the console and
+operators are exempt). The assignment lives in the player's stored record.
+
+## Settings
+
+The lobby book opens a section picker, then a toggle list per section. Sections
+and entries are both declared in `config.yml`; `settings/Settings.php` holds only
+the ids the code reacts to, so presentation and behaviour stay apart. Values are
+stored per player and fall back to the setting's configured default.
+
+## Leaderboards
+
+Floating boards in the lobby, ranked from storage rather than from who happens to
+be online. Set the coordinates under `leaderboards.boards.<id>` — the shipped
+board sits at 0.5/70/0.5, which is almost certainly not where you want it.
+`field` is any numeric field of the stored record (`kills`, `deaths`).
+
 ## Adding things
 
 * **A lobby item** — implement `LobbyItemHandler`, register it in `Core::registerLobbyItems()`,
@@ -114,6 +174,11 @@ comments and `reset` simply drops the override.
 * **An item cooldown** — one line under `cooldowns.items`: `<item name>: <seconds>`.
 * **A placeholder** — add it to `PlaceholderProvider::forSession()`; it becomes available
   in the scoreboard, boss bar, nametag and every message at once.
+* **A setting** — add a constant to `settings/Settings.php`, an entry under
+  `settings.entries`, and read it with `SettingRegistry::isEnabled()`.
+* **A rank** — one block in `ranks.yml`; no code involved.
+* **A leaderboard** — one block under `leaderboards.boards` naming any numeric
+  field of `PlayerData`.
 * **A command** — extend `PracticeCommand` (player-only, gets a `Session`) or plain
   `Command` for a server-level one like `/kbdata`, declare its permission in
   `plugin.yml` and register it in `Core::registerCommands()`.

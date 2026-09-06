@@ -8,6 +8,8 @@ use practice\PlaceholderProvider;
 use practice\PracticeConfig;
 use practice\session\Session;
 use practice\session\SessionState;
+use practice\settings\SettingRegistry;
+use practice\settings\Settings;
 use practice\util\Placeholder;
 use function count;
 
@@ -19,7 +21,8 @@ final class ScoreboardManager{
 
 	public function __construct(
 		private readonly PracticeConfig $config,
-		private readonly PlaceholderProvider $placeholders
+		private readonly PlaceholderProvider $placeholders,
+		private readonly SettingRegistry $settings
 	){
 	}
 
@@ -30,7 +33,7 @@ final class ScoreboardManager{
 	public function update(Session $session) : void{
 		$scoreboard = $session->getScoreboard();
 
-		if(!$this->isEnabled()){
+		if(!$this->isEnabled() || !$this->settings->isEnabled($session, Settings::SCOREBOARD)){
 			$scoreboard->remove();
 			return;
 		}

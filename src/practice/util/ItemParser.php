@@ -10,6 +10,7 @@ use pocketmine\item\enchantment\StringToEnchantmentParser;
 use pocketmine\item\Item;
 use pocketmine\item\StringToItemParser;
 use pocketmine\nbt\tag\ByteTag;
+use practice\item\ItemSubstitutions;
 use function is_array;
 use function is_int;
 use function is_string;
@@ -91,6 +92,8 @@ final class ItemParser{
 			}
 		}
 
-		return $item;
+		//A few vanilla items have practice-tuned subclasses; this is the one
+		//place that knows about the swap.
+		return ItemSubstitutions::convert($item);
 	}
 }

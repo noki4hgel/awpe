@@ -1,0 +1,65 @@
+# ------------------------------------------------------------------
+#  Ranks
+#
+#  The rank with the lowest priority is the default one every player
+#  starts on. A higher priority outranks a lower one, which is what
+#  /rank uses to stop staff handing out something above themselves.
+#
+#  Placeholders: {player} {message}
+#  Colours use & codes.
+# ------------------------------------------------------------------
+
+default:
+  display: '&7Player'
+  color: '&7'
+  priority: 0
+  chat-format: '&7{player}&r&7: &f{message}'
+  nametag-format: '&7{player}'
+  permissions:
+    - awpe.command.spawn
+    - awpe.command.rekit
+
+vip:
+  display: '&aVIP'
+  color: '&a'
+  priority: 10
+  chat-format: '&8[&aVIP&8] &a{player}&r&7: &f{message}'
+  nametag-format: '&8[&aVIP&8] &a{player}'
+  permissions:
+    - awpe.command.spawn
+    - awpe.command.rekit
+
+mod:
+  display: '&2Mod'
+  color: '&2'
+  priority: 50
+  chat-format: '&8[&2Mod&8] &2{player}&r&7: &f{message}'
+  nametag-format: '&8[&2Mod&8] &2{player}'
+  permissions:
+    - awpe.command.spawn
+    - awpe.command.rekit
+    - awpe.command.kbdata
+
+admin:
+  display: '&cAdmin'
+  color: '&c'
+  priority: 90
+  chat-format: '&8[&cAdmin&8] &c{player}&r&7: &f{message}'
+  nametag-format: '&8[&cAdmin&8] &c{player}'
+  permissions:
+    - awpe.command.spawn
+    - awpe.command.rekit
+    - awpe.command.kbdata
+    - awpe.command.rank
+
+owner:
+  display: '&4Owner'
+  color: '&4'
+  priority: 100
+  chat-format: '&8[&4Owner&8] &4{player}&r&7: &f{message}'
+  nametag-format: '&8[&4Owner&8] &4{player}'
+  permissions:
+    - awpe.command.spawn
+    - awpe.command.rekit
+    - awpe.command.kbdata
+    - awpe.command.rank

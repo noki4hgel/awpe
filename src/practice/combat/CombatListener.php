@@ -12,20 +12,24 @@ use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerDeathEvent;
 use pocketmine\player\Player;
 use pocketmine\Server;
+use practice\entity\PracticeLightningBolt;
 use practice\ffa\Arena;
 use practice\ffa\FFAManager;
 use practice\PracticeConfig;
 use practice\session\Session;
 use practice\session\SessionManager;
+use practice\settings\SettingRegistry;
+use practice\settings\Settings;
 use practice\util\Placeholder;
+use function count;
 use function sprintf;
 
 /**
  * Hit feedback, damage rules and deaths.
  *
  * Deaths are resolved from the damage event itself: the killing blow is
- * cancelled and the victim is moved back to the lobby, so no vanilla death
- * screen or respawn cycle is involved.
+ * cancelled and the victim is moved on, so no vanilla death screen or respawn
+ * cycle is involved.
  */
 final class CombatListener implements Listener{
 
@@ -36,7 +40,9 @@ final class CombatListener implements Listener{
 		private readonly PracticeConfig $config,
 		private readonly SessionManager $sessions,
 		private readonly FFAManager $ffa,
-		private readonly CombatManager $combat
+		private readonly CombatManager $combat,
+		private readonly SettingRegistry $settings,
+		private readonly ClickTracker $clicks
 	){
 	}
 
@@ -75,6 +81,8 @@ final class CombatListener implements Listener{
 		if($event instanceof EntityDamageByEntityEvent){
 			$damager = $event->getDamager();
 			if($damager instanceof Player){
+				$this->clicks->record($damager);
+
 				$killerSession = $this->sessions->get($damager);
 				$this->sendHitFeedback($victimSession, $damager, $killerSession);
 
@@ -92,7 +100,7 @@ final class CombatListener implements Listener{
 			return;
 		}
 
-		//Take over the kill: no vanilla death, straight back to the lobby.
+		//Take over the kill: no vanilla death, straight into the next round.
 		$event->cancel();
 		$this->handleDeath($victimSession, $killerSession);
 	}
@@ -158,21 +166,26 @@ final class CombatListener implements Listener{
 
 	/**
 	 * Shows the reach of the hit above the hotbar: the attacker sees the raw
-	 * distance, the victim sees who hit him from how far.
+	 * distance, the victim sees who hit him from how far. Either side can turn
+	 * the read-out off for himself.
 	 */
 	private function sendHitFeedback(Session $victimSession, Player $damager, ?Session $damagerSession) : void{
 		$victim = $victimSession->getPlayer();
 		$distance = sprintf("%." . self::DISTANCE_PRECISION . "f", $damager->getPosition()->distance($victim->getPosition()));
 
-		$victim->sendActionBarMessage(Placeholder::apply($this->config->getMessage("hit-taken"), [
-			"player" => $damager->getName(),
-			"distance" => $distance
-		]));
+		if($this->settings->isEnabled($victimSession, Settings::HIT_DISTANCE)){
+			$victim->sendActionBarMessage(Placeholder::apply($this->config->getMessage("hit-taken"), [
+				"player" => $damager->getName(),
+				"distance" => $distance
+			]));
+		}
 
-		$damagerSession?->getPlayer()->sendActionBarMessage(Placeholder::apply($this->config->getMessage("hit-dealt"), [
-			"player" => $victim->getName(),
-			"distance" => $distance
-		]));
+		if($damagerSession !== null && $this->settings->isEnabled($damagerSession, Settings::HIT_DISTANCE)){
+			$damager->sendActionBarMessage(Placeholder::apply($this->config->getMessage("hit-dealt"), [
+				"player" => $victim->getName(),
+				"distance" => $distance
+			]));
+		}
 	}
 
 	private function handleDeath(Session $victim, ?Session $killer) : void{
@@ -189,6 +202,7 @@ final class CombatListener implements Listener{
 
 		//Counted before the killer is re-kitted, otherwise everybody shows full.
 		$this->broadcastDeath($victim, $hasKiller ? $killer : null, $arena);
+		$this->strikeLightning($victim);
 
 		$this->combat->untag($victim->getPlayer());
 		if($hasKiller){
@@ -196,7 +210,47 @@ final class CombatListener implements Listener{
 			$this->refill($killer, $arena);
 		}
 
+		$this->respawn($victim, $arena);
+	}
+
+	/**
+	 * Back into the same arena when the player asked for that, otherwise to the
+	 * lobby. A missing or unavailable arena always means the lobby.
+	 */
+	private function respawn(Session $victim, ?Arena $arena) : void{
+		if($arena !== null && $this->settings->isEnabled($victim, Settings::AUTO_RESPAWN) && $this->ffa->join($victim, $arena)){
+			return;
+		}
+
 		$this->ffa->leave($victim);
+	}
+
+	/**
+	 * Cosmetic strike where the loser fell, sent only to the viewers who want
+	 * to see it. Somebody whose chunks happen to be re-sent within the bolt's
+	 * short lifetime may still catch it, which is harmless.
+	 */
+	private function strikeLightning(Session $victim) : void{
+		if(!$this->config->getBool("combat.lightning-on-kill", true)){
+			return;
+		}
+
+		$location = $victim->getPlayer()->getLocation();
+		$viewers = [];
+		foreach($location->getWorld()->getViewersForPosition($location) as $viewer){
+			$viewerSession = $this->sessions->get($viewer);
+			if($viewerSession !== null && $this->settings->isEnabled($viewerSession, Settings::LIGHTNING_ON_KILL)){
+				$viewers[] = $viewer;
+			}
+		}
+
+		$bolt = new PracticeLightningBolt($location);
+		if(count($viewers) === 0){
+			$bolt->close();
+			return;
+		}
+
+		$bolt->showTo($viewers);
 	}
 
 	private function refill(Session $killer, ?Arena $arena) : void{

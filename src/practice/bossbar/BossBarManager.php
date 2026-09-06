@@ -7,6 +7,8 @@ namespace practice\bossbar;
 use practice\PlaceholderProvider;
 use practice\PracticeConfig;
 use practice\session\Session;
+use practice\settings\SettingRegistry;
+use practice\settings\Settings;
 use practice\util\Placeholder;
 
 /**
@@ -16,7 +18,8 @@ final class BossBarManager{
 
 	public function __construct(
 		private readonly PracticeConfig $config,
-		private readonly PlaceholderProvider $placeholders
+		private readonly PlaceholderProvider $placeholders,
+		private readonly SettingRegistry $settings
 	){
 	}
 
@@ -27,7 +30,7 @@ final class BossBarManager{
 	public function update(Session $session) : void{
 		$bossBar = $session->getBossBar();
 
-		if(!$this->isEnabled()){
+		if(!$this->isEnabled() || !$this->settings->isEnabled($session, Settings::BOSS_BAR)){
 			$bossBar->remove();
 			return;
 		}

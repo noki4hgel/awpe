@@ -9,12 +9,15 @@ use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\event\player\PlayerRespawnEvent;
 use practice\bossbar\BossBarManager;
+use practice\combat\ClickTracker;
 use practice\combat\CombatManager;
 use practice\cooldown\CooldownManager;
 use practice\ffa\FFAManager;
+use practice\leaderboard\LeaderboardManager;
 use practice\lobby\LobbyManager;
 use practice\nametag\NameTagManager;
 use practice\PracticeConfig;
+use practice\rank\RankManager;
 use practice\scoreboard\ScoreboardManager;
 use practice\util\Placeholder;
 
@@ -30,9 +33,12 @@ final class SessionListener implements Listener{
 		private readonly FFAManager $ffa,
 		private readonly CombatManager $combat,
 		private readonly CooldownManager $cooldowns,
+		private readonly ClickTracker $clicks,
+		private readonly RankManager $ranks,
 		private readonly ScoreboardManager $scoreboards,
 		private readonly BossBarManager $bossBars,
-		private readonly NameTagManager $nameTags
+		private readonly NameTagManager $nameTags,
+		private readonly LeaderboardManager $leaderboards
 	){
 	}
 
@@ -42,12 +48,15 @@ final class SessionListener implements Listener{
 
 		$event->setJoinMessage(Placeholder::apply($this->config->getMessage("join"), ["player" => $player->getName()]));
 
+		//Permissions first: the lobby items and menus are gated on them.
+		$this->ranks->apply($session);
 		$this->lobby->join($session);
 
 		//Draw the displays immediately instead of waiting for the next heartbeat.
 		$this->scoreboards->update($session);
 		$this->bossBars->update($session);
 		$this->nameTags->update($session);
+		$this->leaderboards->sendTo($player);
 	}
 
 	public function onQuit(PlayerQuitEvent $event) : void{
@@ -63,12 +72,13 @@ final class SessionListener implements Listener{
 		//Timers are keyed by the connection, so they must not outlive it.
 		$this->combat->untag($player);
 		$this->cooldowns->clear($player);
+		$this->clicks->clear($player);
 		$this->sessions->close($player);
 	}
 
 	/**
-	 * Players are sent back to the lobby by the combat handler, so a vanilla
-	 * respawn should never leave anyone in an arena world.
+	 * Players are sent onwards by the combat handler, so a vanilla respawn
+	 * should never leave anyone stranded in an arena world.
 	 */
 	public function onRespawn(PlayerRespawnEvent $event) : void{
 		$session = $this->sessions->get($event->getPlayer());

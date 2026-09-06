@@ -1,6 +1,6 @@
 name: Awpe
 main: practice\Core
-version: 1.1.0
+version: 1.2.0
 api: 5.0.0
 load: POSTWORLD
 author: noki7ngel
@@ -16,3 +16,6 @@ permissions:
   awpe.command.kbdata:
     default: op
     description: Read and change a mode's knockback with /kbdata
+  awpe.command.rank:
+    default: op
+    description: Read and assign player ranks with /rank

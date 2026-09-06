@@ -6,7 +6,10 @@ namespace practice\nametag;
 
 use practice\PlaceholderProvider;
 use practice\PracticeConfig;
+use practice\rank\RankManager;
 use practice\session\Session;
+use practice\settings\SettingRegistry;
+use practice\settings\Settings;
 use practice\util\Placeholder;
 
 /**
@@ -19,7 +22,9 @@ final class NameTagManager{
 
 	public function __construct(
 		private readonly PracticeConfig $config,
-		private readonly PlaceholderProvider $placeholders
+		private readonly PlaceholderProvider $placeholders,
+		private readonly SettingRegistry $settings,
+		private readonly RankManager $ranks
 	){
 	}
 
@@ -33,7 +38,9 @@ final class NameTagManager{
 			return;
 		}
 
-		if(!$this->isEnabled()){
+		$this->updateRankTag($session);
+
+		if(!$this->isEnabled() || !$this->settings->isEnabled($session, Settings::NAMETAG)){
 			$this->remove($session);
 			return;
 		}
@@ -49,6 +56,25 @@ final class NameTagManager{
 
 		$player->setScoreTag($text);
 		$session->setLastNameTag($text);
+	}
+
+	/**
+	 * The name itself, rendered through the player's rank. Separate from the
+	 * score tag below it, and not something a player can switch off — it is how
+	 * everyone else identifies him.
+	 */
+	private function updateRankTag(Session $session) : void{
+		$rank = $this->ranks->get($session);
+		if($rank === null){
+			return;
+		}
+
+		$player = $session->getPlayer();
+		$nameTag = Placeholder::apply($rank->getNameTagFormat(), ["player" => $player->getName()]);
+
+		if($player->getNameTag() !== $nameTag){
+			$player->setNameTag($nameTag);
+		}
 	}
 
 	public function remove(Session $session) : void{

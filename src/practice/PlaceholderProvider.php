@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace practice;
 
 use pocketmine\Server;
+use practice\combat\ClickTracker;
 use practice\combat\CombatManager;
 use practice\ffa\FFAManager;
+use practice\rank\RankManager;
 use practice\session\Session;
 use practice\util\DeviceUtil;
 use function ceil;
@@ -24,7 +26,9 @@ final class PlaceholderProvider{
 		private readonly Server $server,
 		private readonly PracticeConfig $config,
 		private readonly FFAManager $ffa,
-		private readonly CombatManager $combat
+		private readonly CombatManager $combat,
+		private readonly ClickTracker $clicks,
+		private readonly RankManager $ranks
 	){
 	}
 
@@ -50,7 +54,10 @@ final class PlaceholderProvider{
 			"arena_players" => $arena?->count() ?? 0,
 			//Seconds left on the combat tag; 0 when the player is free to leave.
 			"combat" => $this->combat->getRemainingSeconds($player),
-			"pots" => $arena?->countPots($player) ?? 0
+			"pots" => $arena?->countPots($player) ?? 0,
+			"cps" => $this->clicks->getClicksPerSecond($player),
+			"rank" => $this->ranks->get($session)?->getDisplay() ?? "",
+			"rank_color" => $this->ranks->get($session)?->getColor() ?? ""
 		];
 	}
 

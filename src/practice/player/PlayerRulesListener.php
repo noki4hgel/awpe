@@ -1,0 +1,50 @@
+<?php
+
+declare(strict_types=1);
+
+namespace practice\player;
+
+use pocketmine\event\Listener;
+use pocketmine\event\player\PlayerExhaustEvent;
+use pocketmine\event\player\PlayerMissSwingEvent;
+use pocketmine\player\Player;
+use practice\combat\ClickTracker;
+use practice\PracticeConfig;
+
+/**
+ * Server-wide player rules that are not tied to the lobby or to an arena.
+ *
+ * Hunger lives here rather than in the lobby listener because a practice server
+ * wants it gone everywhere, arenas included.
+ */
+final class PlayerRulesListener implements Listener{
+
+	public function __construct(
+		private readonly PracticeConfig $config,
+		private readonly ClickTracker $clicks
+	){
+	}
+
+	/**
+	 * Cancelling exhaustion stops the food bar from ever draining, which is
+	 * cheaper and less jarring than topping it back up on a timer.
+	 */
+	public function onExhaust(PlayerExhaustEvent $event) : void{
+		if(!$this->config->getBool("server.disable-hunger", true)){
+			return;
+		}
+
+		$player = $event->getPlayer();
+		if($player instanceof Player){
+			$event->cancel();
+		}
+	}
+
+	/**
+	 * A swing that hit nothing still counts towards CPS; landed hits are
+	 * recorded by the combat listener.
+	 */
+	public function onMissSwing(PlayerMissSwingEvent $event) : void{
+		$this->clicks->record($event->getPlayer());
+	}
+}

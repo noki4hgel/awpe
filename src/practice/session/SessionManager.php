@@ -6,7 +6,7 @@ namespace practice\session;
 
 use pocketmine\player\Player;
 use practice\scoreboard\Scoreboard;
-use practice\stats\StatsProvider;
+use practice\data\DataProvider;
 use function count;
 use function spl_object_id;
 
@@ -22,13 +22,13 @@ final class SessionManager{
 	private array $sessions = [];
 
 	public function __construct(
-		private readonly StatsProvider $stats,
+		private readonly DataProvider $data,
 		private readonly string $scoreboardSlot = Scoreboard::SLOT_SIDEBAR
 	){
 	}
 
 	public function open(Player $player) : Session{
-		return $this->sessions[spl_object_id($player)] ??= new Session($player, $this->stats, $this->scoreboardSlot);
+		return $this->sessions[spl_object_id($player)] ??= new Session($player, $this->data, $this->scoreboardSlot);
 	}
 
 	public function close(Player $player) : void{
@@ -72,7 +72,7 @@ final class SessionManager{
 		}
 	}
 
-	public function getStats() : StatsProvider{
-		return $this->stats;
+	public function getDataProvider() : DataProvider{
+		return $this->data;
 	}
 }

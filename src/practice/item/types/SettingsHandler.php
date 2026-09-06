@@ -5,20 +5,17 @@ declare(strict_types=1);
 namespace practice\item\types;
 
 use practice\item\LobbyItemHandler;
-use practice\PracticeConfig;
 use practice\session\Session;
+use practice\settings\SettingsMenu;
 
 /**
- * Lobby book — player settings.
- *
- * Placeholder until the settings menu exists; see PrivateArenaHandler for the
- * same reasoning about keeping the slot occupied.
+ * Lobby book — opens the settings menu.
  */
 final class SettingsHandler implements LobbyItemHandler{
 
 	public const ACTION_ID = "settings";
 
-	public function __construct(private readonly PracticeConfig $config){
+	public function __construct(private readonly SettingsMenu $menu){
 	}
 
 	public function getActionId() : string{
@@ -26,6 +23,6 @@ final class SettingsHandler implements LobbyItemHandler{
 	}
 
 	public function onUse(Session $session) : void{
-		$session->getPlayer()->sendMessage($this->config->getMessage("soon"));
+		$this->menu->sendSectionMenu($session);
 	}
 }
