@@ -30,6 +30,7 @@ use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
 use pocketmine\world\generator\GeneratorManager;
 use practice\bossbar\BossBarManager;
+use practice\chat\ChatListener;
 use practice\combat\ClickTracker;
 use practice\combat\CombatListener;
 use practice\combat\CombatLogListener;
@@ -41,6 +42,7 @@ use practice\command\SpawnCommand;
 use practice\cooldown\CooldownListener;
 use practice\cooldown\CooldownManager;
 use practice\cooldown\ItemCooldowns;
+use practice\cooldown\XpBarCooldown;
 use practice\data\DataProvider;
 use practice\data\DataProviderFactory;
 use practice\entity\EntityRegistry;
@@ -70,6 +72,7 @@ use practice\session\SessionManager;
 use practice\settings\SettingRegistry;
 use practice\settings\SettingsMenu;
 use practice\task\HeartbeatTask;
+use practice\task\XpBarCooldownTask;
 use practice\world\VoidGenerator;
 use Symfony\Component\Filesystem\Path;
 use function count;
@@ -102,6 +105,7 @@ final class Core extends PluginBase{
 	private CooldownManager $cooldowns;
 	private ItemCooldowns $itemCooldowns;
 	private ClickTracker $clicks;
+	private XpBarCooldown $xpBarCooldown;
 	private RankRegistry $rankRegistry;
 	private RankManager $ranks;
 	private SettingRegistry $settingRegistry;
@@ -165,6 +169,7 @@ final class Core extends PluginBase{
 		$this->cooldowns = new CooldownManager($this->getServer());
 		$this->itemCooldowns = new ItemCooldowns();
 		$this->clicks = new ClickTracker($this->getServer());
+		$this->xpBarCooldown = new XpBarCooldown($this->cooldowns, $this->itemCooldowns);
 
 		$this->registerRanks();
 		$this->registerSettings();
@@ -233,6 +238,10 @@ final class Core extends PluginBase{
 
 	public function getCooldownManager() : CooldownManager{
 		return $this->cooldowns;
+	}
+
+	public function getXpBarCooldown() : XpBarCooldown{
+		return $this->xpBarCooldown;
 	}
 
 	public function getClickTracker() : ClickTracker{
@@ -344,7 +353,8 @@ final class Core extends PluginBase{
 			new LobbyListener($this->lobby, $this->sessions),
 			new FFAListener($this->ffa),
 			new CombatListener($this->getServer(), $this->practiceConfig, $this->sessions, $this->ffa, $this->combat, $this->settingRegistry, $this->clicks),
-			new CombatLogListener($this->practiceConfig, $this->combat)
+			new CombatLogListener($this->practiceConfig, $this->combat),
+			new ChatListener($this->practiceConfig, $this->cooldowns)
 		] as $listener){
 			$pluginManager->registerEvents($listener, $this);
 		}
@@ -374,6 +384,14 @@ final class Core extends PluginBase{
 			),
 			$this->practiceConfig->getUpdateInterval()
 		);
+
+		if($this->practiceConfig->getBool("cooldowns.xp-bar.enabled", true)){
+			//Its own task: a bar that only moved once a second would look broken.
+			$this->getScheduler()->scheduleRepeatingTask(
+				new XpBarCooldownTask($this->sessions, $this->xpBarCooldown),
+				max(1, $this->practiceConfig->getInt("cooldowns.xp-bar.update-interval", 1))
+			);
+		}
 	}
 
 	/**

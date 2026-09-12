@@ -51,6 +51,22 @@ cooldowns:
   # Item name => cooldown in seconds. 0 disables one.
   items:
     ender_pearl: 16
+  # Show the longest running cooldown on the experience bar: the level is the
+  # seconds left and the bar drains as it runs out.
+  xp-bar:
+    enabled: true
+    # Ticks between redraws. 1 keeps the bar smooth; the work per player is a
+    # single comparison, so there is little reason to raise it.
+    update-interval: 1
+
+chat:
+  # Seconds a player must wait between messages. 0 disables the wait.
+  cooldown: 3
+  # Refuse a message identical to the player's previous one (case and spacing
+  # are ignored, so "HI" after "hi" is still a repeat).
+  block-repeats: true
+  # Permission that skips both checks. Granted through a rank, not hard-coded.
+  bypass-permission: awpe.bypass.chat
 
 messages:
   join: "§a[+] §f{player}"
@@ -94,6 +110,9 @@ messages:
   # Settings menu
   settings-saved: "§aSettings saved."
   settings-empty: "§cThere is nothing to configure here."
+  # Chat rate limiting
+  chat-cooldown: "§cWait §f{seconds}s §cbefore your next message."
+  chat-repeat: "§cYou just said that."
   # Action bar read-out, shown while the player is not in combat.
   cps-counter: "§7CPS: §f{cps}"
   ffa-arena-unavailable: "§cThis arena is currently unavailable."
@@ -161,10 +180,9 @@ leaderboards:
   # and "deaths" are what the core stores today.
   boards:
     kills:
-      # Leave "world" out to use the lobby world.
-      x: 0.5
-      y: 70.0
-      z: 0.5
+      x: 998
+      y: 121
+      z: 1012
       field: kills
       limit: 10
       title: "§l§6Top Kills§r"
@@ -205,6 +223,9 @@ bossbar:
 
 nametag:
   enabled: true
+  # The player's own name, above his head. {rank_color} is his rank's colour -
+  # there is no rank prefix here on purpose, the colour carries the rank.
+  name-format: "{rank_color}{player}"
   # Rendered under the player name (score tag).
   format: "§e{ping} ms §8| §e{device} §8| §e{health}/{max_health}"
   # Displayed name of every device, keyed by the protocol DeviceOS value.

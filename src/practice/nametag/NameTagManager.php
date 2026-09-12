@@ -59,9 +59,12 @@ final class NameTagManager{
 	}
 
 	/**
-	 * The name itself, rendered through the player's rank. Separate from the
-	 * score tag below it, and not something a player can switch off — it is how
-	 * everyone else identifies him.
+	 * The name itself, tinted with the player's rank colour.
+	 *
+	 * Deliberately no rank prefix: above the head there is already the score tag
+	 * below and the name itself, and a bracketed tag on top of that is noise.
+	 * The colour carries the rank instead. Not something a player can switch
+	 * off — it is how everyone else identifies him.
 	 */
 	private function updateRankTag(Session $session) : void{
 		$rank = $this->ranks->get($session);
@@ -70,7 +73,10 @@ final class NameTagManager{
 		}
 
 		$player = $session->getPlayer();
-		$nameTag = Placeholder::apply($rank->getNameTagFormat(), ["player" => $player->getName()]);
+		$nameTag = Placeholder::apply($this->config->getString("nametag.name-format", "{rank_color}{player}"), [
+			"player" => $player->getName(),
+			"rank_color" => $rank->getColor()
+		]);
 
 		if($player->getNameTag() !== $nameTag){
 			$player->setNameTag($nameTag);

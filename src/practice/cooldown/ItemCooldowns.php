@@ -6,6 +6,7 @@ namespace practice\cooldown;
 
 use pocketmine\item\Item;
 use pocketmine\item\StringToItemParser;
+use function in_array;
 use function is_int;
 use function is_string;
 
@@ -68,5 +69,13 @@ final class ItemCooldowns{
 
 	public function has(Item $item) : bool{
 		return isset($this->ticks[$item->getStateId()]);
+	}
+
+	/**
+	 * Whether a cooldown tag belongs to an item rather than to something
+	 * internal like the chat limiter.
+	 */
+	public function isItemTag(string $tag) : bool{
+		return in_array($tag, $this->tags, true);
 	}
 }

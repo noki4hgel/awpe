@@ -44,9 +44,13 @@ src/practice/
     ClickTracker.php        clicks over a one second window, for the CPS read-out
 
   cooldown/
-    CooldownManager.php     named per-player timers
+    CooldownManager.php     named per-player timers, with progress
     ItemCooldowns.php       item name => cooldown, from config
     CooldownListener.php    blocks the throw and syncs the client-side overlay
+    XpBarCooldown.php       draws the running item cooldown on the experience bar
+
+  chat/
+    ChatListener.php        chat rate limit and repeat blocking
 
   command/
     PracticeCommand.php     base: player-only + session lookup
@@ -100,6 +104,7 @@ src/practice/
   nametag/NameTagManager    the ping / device / health line under a player's name
   world/VoidGenerator       lets imported arena maps that declare "void" load
   task/HeartbeatTask        one repeating task refreshing every live display
+  task/XpBarCooldownTask    drives the experience-bar cooldown, once a tick
   util/                     placeholders, item parsing, device names, player/world helpers
   form/                     minimal SimpleForm implementation
 ```
@@ -145,10 +150,34 @@ the pot counter never have to know.
 ## Ranks
 
 `ranks.yml` defines the ladder; the lowest `priority` is the default rank. A
-rank carries its chat format, its nametag format and its permissions, which are
-granted through a `PermissionAttachment` on join and released on quit. `/rank`
-will not hand out anything at or above the sender's own rank (the console and
-operators are exempt). The assignment lives in the player's stored record.
+rank carries its chat format, its colour and its permissions, which are granted
+through a `PermissionAttachment` on join and released on quit. `/rank` will not
+hand out anything at or above the sender's own rank (the console and operators
+are exempt). The assignment lives in the player's stored record.
+
+Above the head a player shows **only his name in the rank colour** — no prefix.
+There is already a score tag on the line below, and a bracketed rank on top of
+that is noise. The template is `nametag.name-format`, not a per-rank setting, so
+the layout is decided once.
+
+## Cooldowns
+
+`cooldowns.items` maps a vanilla item name to a wait in seconds. The throw is
+refused by the core's own timer rather than by the vanilla item cooldown, which
+`Player::useHeldItem()` overwrites right after the event fires.
+
+While an item cooldown runs it is drawn on the **experience bar**: the level is
+the seconds left and the bar drains as it goes. Internal timers share the same
+manager — the chat limiter is one — and are filtered out, since counting those
+down in front of the player would mean nothing to him.
+
+## Chat
+
+`chat.cooldown` is the wait between messages and `chat.block-repeats` refuses a
+message identical to the player's previous one, comparing case-insensitively
+with runs of whitespace collapsed. Both are skipped by anyone holding
+`chat.bypass-permission`, which staff ranks grant in `ranks.yml`. The check runs
+at `LOWEST`, so a refused message never reaches the rank formatter.
 
 ## Settings
 
@@ -171,12 +200,13 @@ board sits at 0.5/70/0.5, which is almost certainly not where you want it.
 * **An FFA mode** — add a kit under `kits` and an arena under `ffa.arenas` pointing at it.
   A missing arena world is generated with `ffa.generator` when `ffa.auto-generate-worlds`
   is on; otherwise drop the world into `worlds/` yourself.
-* **An item cooldown** — one line under `cooldowns.items`: `<item name>: <seconds>`.
 * **A placeholder** — add it to `PlaceholderProvider::forSession()`; it becomes available
   in the scoreboard, boss bar, nametag and every message at once.
 * **A setting** — add a constant to `settings/Settings.php`, an entry under
   `settings.entries`, and read it with `SettingRegistry::isEnabled()`.
 * **A rank** — one block in `ranks.yml`; no code involved.
+* **An item cooldown** — one line under `cooldowns.items`: `<item name>: <seconds>`.
+  It shows up on the experience bar on its own.
 * **A leaderboard** — one block under `leaderboards.boards` naming any numeric
   field of `PlayerData`.
 * **A command** — extend `PracticeCommand` (player-only, gets a `Session`) or plain

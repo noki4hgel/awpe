@@ -28,7 +28,6 @@ final class Rank{
 		private readonly string $display,
 		private readonly string $color,
 		private readonly string $chatFormat,
-		private readonly string $nameTagFormat,
 		private readonly int $priority,
 		private readonly array $permissions
 	){
@@ -55,7 +54,6 @@ final class Rank{
 			$colorize("display", $id),
 			$colorize("color", "&7"),
 			$colorize("chat-format", "&7{player}&r: {message}"),
-			$colorize("nametag-format", "{player}"),
 			is_int($data["priority"] ?? null) ? $data["priority"] : 0,
 			$permissions
 		);
@@ -69,16 +67,16 @@ final class Rank{
 		return $this->display;
 	}
 
+	/**
+	 * The rank's colour. It is what tints a player's name above his head — the
+	 * nametag carries no prefix, so the colour alone has to identify the rank.
+	 */
 	public function getColor() : string{
 		return $this->color;
 	}
 
 	public function getChatFormat() : string{
 		return $this->chatFormat;
-	}
-
-	public function getNameTagFormat() : string{
-		return $this->nameTagFormat;
 	}
 
 	public function getPriority() : int{

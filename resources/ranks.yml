@@ -5,7 +5,9 @@
 #  starts on. A higher priority outranks a lower one, which is what
 #  /rank uses to stop staff handing out something above themselves.
 #
-#  Placeholders: {player} {message}
+#  Placeholders in chat-format: {player} {message}
+#  Above the head a player shows only his name in the rank colour, so there is
+#  no nametag format here - set "color" and that is what everyone sees.
 #  Colours use & codes.
 # ------------------------------------------------------------------
 
@@ -14,7 +16,6 @@ default:
   color: '&7'
   priority: 0
   chat-format: '&7{player}&r&7: &f{message}'
-  nametag-format: '&7{player}'
   permissions:
     - awpe.command.spawn
     - awpe.command.rekit
@@ -24,7 +25,6 @@ vip:
   color: '&a'
   priority: 10
   chat-format: '&8[&aVIP&8] &a{player}&r&7: &f{message}'
-  nametag-format: '&8[&aVIP&8] &a{player}'
   permissions:
     - awpe.command.spawn
     - awpe.command.rekit
@@ -34,22 +34,22 @@ mod:
   color: '&2'
   priority: 50
   chat-format: '&8[&2Mod&8] &2{player}&r&7: &f{message}'
-  nametag-format: '&8[&2Mod&8] &2{player}'
   permissions:
     - awpe.command.spawn
     - awpe.command.rekit
     - awpe.command.kbdata
+    - awpe.bypass.chat
 
 admin:
   display: '&cAdmin'
   color: '&c'
   priority: 90
   chat-format: '&8[&cAdmin&8] &c{player}&r&7: &f{message}'
-  nametag-format: '&8[&cAdmin&8] &c{player}'
   permissions:
     - awpe.command.spawn
     - awpe.command.rekit
     - awpe.command.kbdata
+    - awpe.bypass.chat
     - awpe.command.rank
 
 owner:
@@ -57,9 +57,9 @@ owner:
   color: '&4'
   priority: 100
   chat-format: '&8[&4Owner&8] &4{player}&r&7: &f{message}'
-  nametag-format: '&8[&4Owner&8] &4{player}'
   permissions:
     - awpe.command.spawn
     - awpe.command.rekit
     - awpe.command.kbdata
+    - awpe.bypass.chat
     - awpe.command.rank
