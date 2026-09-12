@@ -46,6 +46,13 @@ combat:
   # Cosmetic lightning where a player dies on FFA. Viewers can still turn it
   # off for themselves in the settings menu.
   lightning-on-kill: true
+  # Banner across the killer's screen naming who he just took down. Nobody else
+  # sees it - the arena already gets the kill feed in chat. Times are in ticks.
+  kill-title:
+    enabled: true
+    fade-in: 3
+    stay: 20
+    fade-out: 8
 
 cooldowns:
   # Item name => cooldown in seconds. 0 disables one.
@@ -110,6 +117,9 @@ messages:
   # Settings menu
   settings-saved: "§aSettings saved."
   settings-empty: "§cThere is nothing to configure here."
+  # Shown to the killer only. {victim} is who he just killed.
+  kill-title: "§a§lKILL!"
+  kill-subtitle: "§f{victim}"
   # Chat rate limiting
   chat-cooldown: "§cWait §f{seconds}s §cbefore your next message."
   chat-repeat: "§cYou just said that."
@@ -172,6 +182,11 @@ settings:
       section: visual
       display: "Kill lightning"
       description: "Lightning strike where a player dies"
+      default: true
+    kill-title:
+      section: visual
+      display: "Kill banner"
+      description: "Big KILL! banner naming who you took down"
       default: true
 
 leaderboards:

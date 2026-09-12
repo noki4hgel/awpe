@@ -160,6 +160,14 @@ There is already a score tag on the line below, and a bracketed rank on top of
 that is noise. The template is `nametag.name-format`, not a per-rank setting, so
 the layout is decided once.
 
+## Kills
+
+The killer gets a banner across his screen naming who he took down — title and
+subtitle from `messages.kill-title` / `kill-subtitle`, timings in ticks under
+`combat.kill-title`. Only he sees it: the arena already gets the kill feed in
+chat, so broadcasting it again would be noise. Like the kill lightning, it has
+its own toggle in the Visual settings.
+
 ## Cooldowns
 
 `cooldowns.items` maps a vanilla item name to a wait in seconds. The throw is

@@ -27,6 +27,8 @@ final class Settings{
 	public const CPS_COUNTER = "cps-counter";
 	/** Lightning strike where an opponent dies. */
 	public const LIGHTNING_ON_KILL = "lightning-on-kill";
+	/** Big "KILL!" banner after taking somebody down. */
+	public const KILL_TITLE = "kill-title";
 
 	private function __construct(){
 		//NOOP
