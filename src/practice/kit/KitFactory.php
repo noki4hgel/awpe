@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace practice\ffa\kit;
+namespace practice\kit;
 
 use pocketmine\entity\effect\EffectInstance;
 use pocketmine\entity\effect\StringToEffectParser;

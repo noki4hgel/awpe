@@ -406,15 +406,15 @@ kits:
       - item: ender_pearl
         slot: 1
         count: 16
-      - item: long_swiftness_potion
-        slot: 8
       - item: strong_healing_splash_potion
         count: 1
         fill: true
-      #effects:
-      #speed:
-      #  amplifier: 0
-      # duration: -1
+    # Permanent speed rather than a swiftness potion: nothing to drink mid-fight,
+    # and the slot the potion took is filled with one more healing pot.
+    effects:
+      speed:
+        amplifier: 0
+        duration: -1
   fist:
     armor: {}
     items: []

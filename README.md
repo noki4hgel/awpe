@@ -34,8 +34,6 @@ src/practice/
     KnockbackProfile.php    horizontal / vertical / attack-delay for one mode
     KnockbackStore.php      persists what /kbdata changes (plugin_data/Awpe/knockback.yml)
     FFAListener.php         keeps arena terrain and kit items intact
-    kit/Kit.php             an immutable loadout
-    kit/KitFactory.php      builds kits from config
 
   combat/
     CombatListener.php      hit distance, damage rules, kills, deaths, kill lightning
@@ -52,12 +50,19 @@ src/practice/
   chat/
     ChatListener.php        chat rate limit and repeat blocking
 
+  kit/
+    Kit.php                 an immutable loadout
+    KitFactory.php          builds kits from config
+    KitIssuer.php           the one way a kit reaches a player (FFA, /rekit, kills, duels)
+
   command/
+    CommandManager.php      builds and registers every command, replaces clashing built-ins
     PracticeCommand.php     base: player-only + session lookup
-    SpawnCommand.php        /spawn (aliases /lobby, /hub)
-    RekitCommand.php        /rekit (alias /kit)
-    KbDataCommand.php       /kbdata (alias /kb) - live knockback tuning, op only
-    RankCommand.php         /rank - read and assign ranks, op only
+    defaults/
+      SpawnCommand.php      /spawn (aliases /lobby, /hub)
+      RekitCommand.php      /rekit (alias /kit)
+      KbDataCommand.php     /kbdata (alias /kb) - live knockback tuning, op only
+      RankCommand.php       /rank - read and assign ranks, op only
 
   item/
     PracticeSplashPotion    item that throws the practice-tuned projectile
@@ -168,6 +173,17 @@ subtitle from `messages.kill-title` / `kill-subtitle`, timings in ticks under
 chat, so broadcasting it again would be noise. Like the kill lightning, it has
 its own toggle in the Visual settings.
 
+## Kits
+
+Every kit hand-out goes through `KitIssuer`: arena entry, `/rekit`, the killer's
+refill after a kill, and duels. A fresh kit always comes with full health and food
+and **no item cooldown left over** — re-issued pearls are usable at once.
+
+Clearing a cooldown takes three steps because it lives in three places: the core's
+own timer, the vanilla `Player::$usedItemsCooldown` map the core fills so the client
+can draw the timer (and which keeps refusing the item until it runs out), and the
+drawing on the client itself. Internal timers like the chat limiter are left alone.
+
 ## Cooldowns
 
 `cooldowns.items` maps a vanilla item name to a wait in seconds. The throw is
@@ -219,4 +235,6 @@ board sits at 0.5/70/0.5, which is almost certainly not where you want it.
   field of `PlayerData`.
 * **A command** — extend `PracticeCommand` (player-only, gets a `Session`) or plain
   `Command` for a server-level one like `/kbdata`, declare its permission in
-  `plugin.yml` and register it in `Core::registerCommands()`.
+  `plugin.yml` and add one line to `CommandManager::registerDefaults()`. If its name
+  or an alias is taken by a PocketMine built-in, the built-in is replaced
+  automatically; another plugin's command is left alone with a warning.

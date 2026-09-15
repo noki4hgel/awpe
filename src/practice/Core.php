@@ -35,10 +35,7 @@ use practice\combat\ClickTracker;
 use practice\combat\CombatListener;
 use practice\combat\CombatLogListener;
 use practice\combat\CombatManager;
-use practice\command\KbDataCommand;
-use practice\command\RankCommand;
-use practice\command\RekitCommand;
-use practice\command\SpawnCommand;
+use practice\command\CommandManager;
 use practice\cooldown\CooldownListener;
 use practice\cooldown\CooldownManager;
 use practice\cooldown\ItemCooldowns;
@@ -56,6 +53,7 @@ use practice\item\LobbyItemRegistry;
 use practice\item\types\FFASelectorHandler;
 use practice\item\types\PrivateArenaHandler;
 use practice\item\types\SettingsHandler;
+use practice\kit\KitIssuer;
 use practice\leaderboard\LeaderboardManager;
 use practice\lobby\LobbyListener;
 use practice\lobby\LobbyManager;
@@ -104,6 +102,7 @@ final class Core extends PluginBase{
 	private CombatManager $combat;
 	private CooldownManager $cooldowns;
 	private ItemCooldowns $itemCooldowns;
+	private KitIssuer $kitIssuer;
 	private ClickTracker $clicks;
 	private XpBarCooldown $xpBarCooldown;
 	private RankRegistry $rankRegistry;
@@ -118,6 +117,7 @@ final class Core extends PluginBase{
 	private ScoreboardManager $scoreboards;
 	private BossBarManager $bossBars;
 	private NameTagManager $nameTags;
+	private CommandManager $commands;
 
 	public static function getInstance() : Core{
 		return self::$instance ?? throw new \LogicException("Awpe is not enabled");
@@ -169,6 +169,7 @@ final class Core extends PluginBase{
 		$this->cooldowns = new CooldownManager($this->getServer());
 		$this->itemCooldowns = new ItemCooldowns();
 		$this->clicks = new ClickTracker($this->getServer());
+		$this->kitIssuer = new KitIssuer($this->cooldowns, $this->itemCooldowns);
 		$this->xpBarCooldown = new XpBarCooldown($this->cooldowns, $this->itemCooldowns);
 
 		$this->registerRanks();
@@ -181,6 +182,7 @@ final class Core extends PluginBase{
 			$this->practiceConfig,
 			$this->sessions,
 			$this->lobby,
+			$this->kitIssuer,
 			new KnockbackStore(Path::join($dataFolder, self::KNOCKBACK_FILE))
 		);
 
@@ -238,6 +240,14 @@ final class Core extends PluginBase{
 
 	public function getCooldownManager() : CooldownManager{
 		return $this->cooldowns;
+	}
+
+	public function getKitIssuer() : KitIssuer{
+		return $this->kitIssuer;
+	}
+
+	public function getCommandManager() : CommandManager{
+		return $this->commands;
 	}
 
 	public function getXpBarCooldown() : XpBarCooldown{
@@ -361,12 +371,8 @@ final class Core extends PluginBase{
 	}
 
 	private function registerCommands() : void{
-		$this->getServer()->getCommandMap()->registerAll($this->getName(), [
-			new SpawnCommand($this->practiceConfig, $this->sessions, $this->ffa),
-			new RekitCommand($this->practiceConfig, $this->sessions, $this->ffa),
-			new KbDataCommand($this->practiceConfig, $this->ffa),
-			new RankCommand($this->practiceConfig, $this->sessions, $this->ranks, $this->getServer())
-		]);
+		$this->commands = new CommandManager($this);
+		$this->commands->registerDefaults();
 	}
 
 	private function scheduleTasks() : void{

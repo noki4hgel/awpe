@@ -24,6 +24,9 @@ final class ItemCooldowns{
 	/** @var array<int, string> item state id => cooldown tag */
 	private array $tags = [];
 
+	/** @var array<int, Item> item state id => the item, for telling the client */
+	private array $items = [];
+
 	private const TICKS_PER_SECOND = 20;
 
 	/**
@@ -34,6 +37,7 @@ final class ItemCooldowns{
 	public function loadFromConfig(array $config) : array{
 		$this->ticks = [];
 		$this->tags = [];
+		$this->items = [];
 		$failed = [];
 
 		foreach($config as $name => $seconds){
@@ -54,6 +58,7 @@ final class ItemCooldowns{
 
 			$this->ticks[$item->getStateId()] = $seconds * self::TICKS_PER_SECOND;
 			$this->tags[$item->getStateId()] = $name;
+			$this->items[$item->getStateId()] = $item;
 		}
 
 		return $failed;
@@ -69,6 +74,16 @@ final class ItemCooldowns{
 
 	public function has(Item $item) : bool{
 		return isset($this->ticks[$item->getStateId()]);
+	}
+
+	/**
+	 * Every item that has a cooldown, so the client's per-item timers can be
+	 * cleared when a fresh kit is handed out.
+	 *
+	 * @return Item[]
+	 */
+	public function getItems() : array{
+		return $this->items;
 	}
 
 	/**

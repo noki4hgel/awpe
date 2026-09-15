@@ -31,6 +31,18 @@ final class PracticePlayer extends Player{
 	}
 
 	/**
+	 * Forgets every vanilla item cooldown.
+	 *
+	 * The core pushes its own durations into this map so the client draws the
+	 * timer on the item, which also means vanilla keeps refusing the item until
+	 * that timer runs out. Handing out a fresh kit has to wipe it, and nothing
+	 * in the public Player API can.
+	 */
+	public function clearItemCooldowns() : void{
+		$this->usedItemsCooldown = [];
+	}
+
+	/**
 	 * Same shape as the vanilla implementation, except the horizontal push and
 	 * the vertical push come from the active profile instead of both being
 	 * derived from $force.

@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace practice\command;
+namespace practice\command\defaults;
 
+use practice\command\PracticeCommand;
 use practice\ffa\FFAManager;
 use practice\PracticeConfig;
 use practice\session\Session;

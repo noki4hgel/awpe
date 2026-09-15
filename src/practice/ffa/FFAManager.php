@@ -11,9 +11,10 @@ use pocketmine\world\generator\GeneratorManager;
 use pocketmine\world\World;
 use pocketmine\world\WorldCreationOptions;
 use practice\Core;
-use practice\ffa\kit\Kit;
-use practice\ffa\kit\KitFactory;
 use practice\form\SimpleForm;
+use practice\kit\Kit;
+use practice\kit\KitFactory;
+use practice\kit\KitIssuer;
 use practice\lobby\LobbyManager;
 use practice\player\PracticePlayer;
 use practice\PracticeConfig;
@@ -51,6 +52,7 @@ final class FFAManager{
 		private readonly PracticeConfig $config,
 		private readonly SessionManager $sessions,
 		private readonly LobbyManager $lobby,
+		private readonly KitIssuer $kitIssuer,
 		KnockbackStore $knockbackStore
 	){
 		$this->gameMode = PlayerUtil::gameModeFromString($config->getString("ffa.gamemode", "adventure"));
@@ -131,7 +133,7 @@ final class FFAManager{
 
 		PlayerUtil::reset($player, $this->gameMode);
 		$player->teleport($spawn);
-		$arena->getKit()->apply($player);
+		$this->kitIssuer->issue($player, $arena->getKit());
 		$this->applyKnockback($player, $arena->getKnockback());
 
 		$session->setState(SessionState::FFA);
@@ -174,11 +176,13 @@ final class FFAManager{
 	}
 
 	/**
-	 * Hands out the arena kit again. Refused outside an arena.
+	 * Hands out the arena kit again — /rekit, and the killer's reward after a
+	 * kill. Refused outside an arena. The fresh kit comes without any leftover
+	 * item cooldown, so re-issued pearls are usable straight away.
 	 */
 	public function rekit(Session $session) : bool{
 		$arena = $this->getArenaOf($session);
-		if($arena === null || !$session->isInFFA()){
+		if($arena === null || !$session->isInFFA() || !$arena->contains($session)){
 			return false;
 		}
 
@@ -187,9 +191,7 @@ final class FFAManager{
 			return false;
 		}
 
-		$arena->getKit()->apply($player);
-		$player->setHealth((float) $player->getMaxHealth());
-		$player->getHungerManager()->setFood((float) $player->getHungerManager()->getMaxFood());
+		$this->kitIssuer->issue($player, $arena->getKit());
 
 		return true;
 	}

@@ -8,7 +8,7 @@ use pocketmine\item\Item;
 use pocketmine\player\Player;
 use pocketmine\world\Position;
 use pocketmine\world\World;
-use practice\ffa\kit\Kit;
+use practice\kit\Kit;
 use practice\session\Session;
 use practice\util\WorldUtil;
 use function count;

@@ -208,7 +208,8 @@ final class CombatListener implements Listener{
 		if($hasKiller){
 			$this->combat->untag($killer->getPlayer());
 			$this->sendKillTitle($killer, $victim);
-			$this->refill($killer, $arena);
+			//Same path as /rekit: fresh kit, full health, no pearl cooldown left over.
+			$this->ffa->rekit($killer);
 		}
 
 		$this->respawn($victim, $arena);
@@ -279,17 +280,6 @@ final class CombatListener implements Listener{
 		}
 
 		$bolt->showTo($viewers);
-	}
-
-	private function refill(Session $killer, ?Arena $arena) : void{
-		if($arena === null || !$arena->contains($killer)){
-			return;
-		}
-
-		$player = $killer->getPlayer();
-		$arena->getKit()->apply($player);
-		$player->setHealth((float) $player->getMaxHealth());
-		$player->getHungerManager()->setFood((float) $player->getHungerManager()->getMaxFood());
 	}
 
 	private function broadcastDeath(Session $victim, ?Session $killer, ?Arena $arena) : void{

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace practice\command;
+namespace practice\command\defaults;
 
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
