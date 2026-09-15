@@ -70,6 +70,10 @@ final class Session{
 		return $this->state === SessionState::FFA;
 	}
 
+	public function isInDuel() : bool{
+		return $this->state === SessionState::DUEL;
+	}
+
 	public function getArenaId() : ?string{
 		return $this->arenaId;
 	}

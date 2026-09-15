@@ -53,8 +53,8 @@ final class JsonDataProvider implements DataProvider{
 				continue;
 			}
 
-			$value = $raw[$field] ?? null;
-			if(!is_int($value) || $value <= 0){
+			$value = PlayerData::fromArray($raw)->getNumber($field);
+			if($value === null || $value <= 0){
 				continue;
 			}
 

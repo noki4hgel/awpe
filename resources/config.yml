@@ -216,6 +216,62 @@ messages:
   usage-unban: "§7Usage: §f/unban <player> [reason...]"
   usage-unmute: "§7Usage: §f/unmute <player> [reason...]"
   usage-history: "§7Usage: §f/history <player> [page]"
+  # Duels. Placeholders: {ladder} {map} {opponent} {opponent_ping} {duel_time}
+  # {elo} {opponent_elo} {ranked_tag}; queue: {queue_ladder} {queue_mode} {queue_time}
+  duel-mode-unranked: "§aUnranked"
+  duel-mode-ranked: "§6Ranked"
+  duel-ranked-tag: " §8[§6Ranked§8]"
+  duel-no-ladders: "§cNo duel modes are available right now."
+  duel-no-arena: "§cThere is no arena for {ladder} yet."
+  duel-unknown-ladder: "§cUnknown mode §f{ladder}§c."
+  duel-queue-joined: "§7Searching for a §f{queue_ladder} §7match §8({queue_mode}§8)§7..."
+  duel-queue-left: "§7You left the §f{queue_ladder} §7queue."
+  duel-queue-not-queued: "§cYou are not in a queue."
+  duel-queue-not-in-lobby: "§cYou can only queue from the lobby."
+  duel-queue-unranked-only: "§cThis mode is not played ranked."
+  duel-found: "§aMatch found: §f{opponent} §8| §f{ladder} §8| §7Map: §f{map}{ranked_tag}"
+  duel-arena-failed: "§cThe arena could not be prepared. You are back in the lobby."
+  duel-cancelled-left: "§c{player} left before the fight started. The match was called off."
+  duel-forfeit: "§f{player} §7left the match."
+  duel-you-forfeited: "§7You left the match."
+  duel-countdown-title: "§e{seconds}"
+  duel-countdown-subtitle: "§7vs §f{opponent}"
+  duel-fight-title: "§a§lFIGHT!"
+  duel-fight-subtitle: ""
+  duel-win-title: "§a§lVICTORY"
+  duel-win-subtitle: "§7vs §f{opponent}"
+  duel-lose-title: "§c§lDEFEAT"
+  duel-lose-subtitle: "§7vs §f{opponent}"
+  duel-draw-title: "§e§lDRAW"
+  duel-draw-subtitle: "§7Time ran out"
+  # Summary. {winner} {loser} {duration} {change} {winner_elo} {loser_elo};
+  # per player: {player} {hits} {combo} {damage} (hearts) {pots_left} {pots_thrown}
+  duel-summary-header: "§8§m          §r §f{ladder} §8§m          "
+  duel-summary-result: "§a{winner} §7beat §c{loser} §7in §f{duration}"
+  duel-summary-draw: "§eDraw §7after §f{duration}"
+  duel-summary-elo: "§7Elo: §a{winner} {winner_elo} (+{change}) §8| §c{loser} {loser_elo} (-{change})"
+  duel-summary-player: "§f{player} §8» §7hits §f{hits} §8| §7combo §f{combo} §8| §7dmg §f{damage}❤ §8| §7pots §f{pots_left} §8({pots_thrown} thrown)"
+  duel-summary-player-nopots: "§f{player} §8» §7hits §f{hits} §8| §7combo §f{combo} §8| §7dmg §f{damage}❤"
+  duel-summary-footer: "§8§m                              "
+  # Challenges
+  duel-invite-received: "§f{player} §7challenged you to §f{ladder}§7. §a/duel accept {player} §8| §c/duel deny {player} §8({timeout}s)"
+  duel-invite-toast-title: "§6Duel challenge"
+  duel-invite-toast-body: "§f{player} §7wants to play §f{ladder}"
+  duel-invite-sent: "§7Challenged §f{target} §7to §f{ladder}§7."
+  duel-invite-accepted: "§f{player} §aaccepted §7your §f{ladder} §7challenge."
+  duel-invite-denied: "§f{player} §cdeclined §7your challenge."
+  duel-invite-you-denied: "§7Challenge declined."
+  duel-invite-self: "§cYou cannot challenge yourself."
+  duel-invite-not-in-lobby: "§cYou can only duel from the lobby."
+  duel-invite-target-busy: "§c{player} is busy right now."
+  duel-invite-target-offline: "§c{player} is not online."
+  duel-invite-sender-busy: "§cThat player is no longer available."
+  duel-invite-disabled: "§c{player} does not accept duel requests."
+  duel-invite-pending: "§cYou already challenged {player}."
+  duel-invite-cooldown: "§cWait a moment before challenging {player} again."
+  duel-invite-none: "§cYou have no open challenge from that player."
+  duel-invite-failed: "§cThe match could not be started."
+  usage-duel: "§7Usage: §f/duel [player] [mode] §8| §f/duel accept|deny [player] §8| §f/duel leave"
   ffa-arena-unavailable: "§cThis arena is currently unavailable."
   not-in-lobby: "§cYou can only do that from the lobby."
   soon: "§7This feature is coming soon."
@@ -279,6 +335,11 @@ settings:
       display: "Kill banner"
       description: "Big KILL! banner naming who you took down"
       default: true
+    duel-requests:
+      section: gameplay
+      display: "Duel requests"
+      description: "Let other players challenge you to a duel"
+      default: true
 
 leaderboards:
   enabled: true
@@ -319,6 +380,28 @@ scoreboard:
       - "§8 "
       - "§fPing:"
       - "§e{ping}ms"
+    # While waiting in a duel queue.
+    queue:
+      - "§fQueue:"
+      - "§e{queue_ladder} §7{queue_mode}"
+      - "§6 "
+      - "§fWaiting:"
+      - "§e{queue_time}"
+      - "§8 "
+      - "§fPing:"
+      - "§e{ping}ms"
+    duel:
+      - "§fOpponent:"
+      - "§e{opponent}"
+      - "§6 "
+      - "§fYour ping:"
+      - "§e{ping}ms"
+      - "§8 "
+      - "§fTheir ping:"
+      - "§e{opponent_ping}ms"
+      - "§7 "
+      - "§fDuration:"
+      - "§e{duel_time}"
 
 bossbar:
   enabled: true
@@ -373,7 +456,7 @@ lobby:
     hunger: true
     interact: true
   # Hotbar contents of the lobby. The key is the action bound to the item.
-  # Available actions: ffa-selector, private-arenas, settings
+  # Available actions: ffa-selector, duels, settings, leave-queue
   items:
     ffa-selector:
       slot: 0
@@ -381,18 +464,110 @@ lobby:
       name: "§r§bFFA"
       lore:
         - "§7Tap to pick a free-for-all mode"
-    private-arenas:
+    duels:
       slot: 1
       item: clock
-      name: "§r§6Private arenas"
+      name: "§r§6Duels"
       lore:
-        - "§7Coming soon"
+        - "§7Ranked and unranked 1v1"
     settings:
       slot: 8
       item: book
       name: "§r§aSettings"
       lore:
-        - "§7Coming soon"
+        - "§7Gameplay and visual options"
+  # Hotbar while waiting in a duel queue.
+  queue-items:
+    leave-queue:
+      slot: 8
+      item: red_dye
+      name: "§r§cLeave queue"
+      lore:
+        - "§7Stop searching for a match"
+
+duels:
+  # Seconds of frozen countdown before the fight.
+  countdown: 5
+  # Seconds a fight may last before it is called a draw. 0 = no limit.
+  time-limit: 600
+  # Seconds the result stays on screen before both players go back.
+  end-delay: 3
+  gamemode: adventure
+  # Title timings in ticks for the countdown, FIGHT! and the result.
+  titles:
+    fade-in: 2
+    stay: 18
+    fade-out: 4
+  invites:
+    # Seconds a challenge stays open.
+    timeout: 60
+    # Seconds before the same player may be challenged again.
+    cooldown: 10
+  ranked:
+    starting-elo: 1000
+    # How far one match moves a rating at most.
+    k-factor: 32
+    # Matchmaking accepts opponents within "start" Elo, widening by "growth"
+    # every "every" seconds of waiting, up to "max". Both players' windows have
+    # to accept the gap, so a fresh player is never pulled into a mismatch.
+    window:
+      start: 50
+      growth: 25
+      every: 5
+      max: 400
+  form:
+    title: "§l§6Duels"
+    content: ""
+    mode-button: "{mode}\n§8{queued} in queue"
+    unranked-icon: "textures/items/iron_sword"
+    ranked-icon: "textures/items/diamond_sword"
+    ladders-title: "§l{mode}"
+    ladder-button: "{ladder}\n§8{queued} queued §7| §8{playing} playing"
+    challenge-title: "§lChallenge {player}"
+  # Duel modes. "kit" names a block under kits. A ladder is only offered once an
+  # arena lists it.
+  #   ranked      false to keep a mode out of the ranked queue
+  #   knockback   same keys as ffa.knockback; anything left out is inherited
+  #   pot-item    counted as "pots left" in the summary; "" for none
+  #   rules.no-damage    hits push but never hurt
+  #   rules.fall-depth   blocks below the lower spawn that count as falling off
+  ladders:
+    nodebuff:
+      display: "§cNoDebuff"
+      icon: "textures/items/potion_bottle_splash_heal"
+      kit: nodebuff
+    gapple:
+      display: "§6Gapple"
+      icon: "textures/items/apple_golden"
+      kit: gapple
+      pot-item: ""
+    fist:
+      display: "§eFist"
+      icon: "textures/items/leather"
+      kit: fist
+      pot-item: ""
+    sumo:
+      display: "§bSumo"
+      icon: "textures/items/lead"
+      kit: fist
+      pot-item: ""
+      rules:
+        no-damage: true
+        fall-depth: 3
+  # Duel maps. "template" is a world folder under worlds/ that is COPIED for
+  # every match and never played in itself - keep it out of level-name and out
+  # of ffa.arenas, and stop the server before copying a new one in.
+  # "spawns" are the two starting points (yaw 0 faces +Z, 180 faces -Z).
+  arenas:
+    # Placeholder so duels work out of the box: a flat copy of the Fist FFA
+    # world. Replace it with a real map.
+    flat:
+      display: "Flat"
+      template: duel_template_flat
+      ladders: [nodebuff, gapple, fist]
+      spawns:
+        - {x: 256.5, y: 4, z: 246.5, yaw: 0}
+        - {x: 256.5, y: 4, z: 266.5, yaw: 180}
 
 ffa:
   # Game mode players are put in while fighting.

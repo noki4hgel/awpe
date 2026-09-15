@@ -82,8 +82,8 @@ final class LevelDbDataProvider implements DataProvider{
 			}
 
 			$data = PlayerData::fromJson($raw);
-			$value = $data->toArray()[$field] ?? null;
-			if(!is_int($value) || $value <= 0){
+			$value = $data->getNumber($field);
+			if($value === null || $value <= 0){
 				continue;
 			}
 

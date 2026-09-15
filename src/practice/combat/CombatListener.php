@@ -12,16 +12,15 @@ use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerDeathEvent;
 use pocketmine\player\Player;
 use pocketmine\Server;
-use practice\entity\PracticeLightningBolt;
 use practice\ffa\Arena;
 use practice\ffa\FFAManager;
+use practice\player\PracticePlayer;
 use practice\PracticeConfig;
 use practice\session\Session;
 use practice\session\SessionManager;
 use practice\settings\SettingRegistry;
 use practice\settings\Settings;
 use practice\util\Placeholder;
-use function count;
 use function sprintf;
 
 /**
@@ -42,7 +41,8 @@ final class CombatListener implements Listener{
 		private readonly FFAManager $ffa,
 		private readonly CombatManager $combat,
 		private readonly SettingRegistry $settings,
-		private readonly ClickTracker $clicks
+		private readonly ClickTracker $clicks,
+		private readonly KillEffects $killEffects
 	){
 	}
 
@@ -86,7 +86,7 @@ final class CombatListener implements Listener{
 				$killerSession = $this->sessions->get($damager);
 				$this->sendHitFeedback($victimSession, $damager, $killerSession);
 
-				if($victimSession->isInFFA()){
+				if(!$victimSession->isInLobby()){
 					$this->combat->tag($victim, $damager);
 				}
 			}
@@ -158,8 +158,8 @@ final class CombatListener implements Listener{
 	 * full damage after being hit.
 	 */
 	private function applyAttackDelay(EntityDamageEvent $event, Session $victimSession) : void{
-		$arena = $this->ffa->getArenaOf($victimSession);
-		$profile = $arena?->getKnockback() ?? $this->ffa->getDefaultKnockback();
+		$victim = $victimSession->getPlayer();
+		$profile = $victim instanceof PracticePlayer ? $victim->getKnockbackProfile() : $this->ffa->getDefaultKnockback();
 
 		$event->setAttackCooldown($profile->getAttackDelay());
 	}
@@ -202,12 +202,15 @@ final class CombatListener implements Listener{
 
 		//Counted before the killer is re-kitted, otherwise everybody shows full.
 		$this->broadcastDeath($victim, $hasKiller ? $killer : null, $arena);
-		$this->strikeLightning($victim);
+		if($hasKiller){
+			$this->killEffects->play($killer, $victim);
+		}else{
+			$this->killEffects->strikeLightning($victim);
+		}
 
 		$this->combat->untag($victim->getPlayer());
 		if($hasKiller){
 			$this->combat->untag($killer->getPlayer());
-			$this->sendKillTitle($killer, $victim);
 			//Same path as /rekit: fresh kit, full health, no pearl cooldown left over.
 			$this->ffa->rekit($killer);
 		}
@@ -225,61 +228,6 @@ final class CombatListener implements Listener{
 		}
 
 		$this->ffa->leave($victim);
-	}
-
-	/**
-	 * The banner across the killer's screen naming who he just took down.
-	 *
-	 * Only the killer sees it — it is a reward, not an announcement; the arena
-	 * already gets the kill feed in chat.
-	 */
-	private function sendKillTitle(Session $killer, Session $victim) : void{
-		if(!$this->config->getBool("combat.kill-title.enabled", true) || !$this->settings->isEnabled($killer, Settings::KILL_TITLE)){
-			return;
-		}
-
-		$title = $this->config->getMessage("kill-title");
-		if($title === ""){
-			return;
-		}
-
-		$values = ["victim" => $victim->getName(), "killer" => $killer->getName()];
-
-		$killer->getPlayer()->sendTitle(
-			Placeholder::apply($title, $values),
-			Placeholder::apply($this->config->getMessage("kill-subtitle"), $values),
-			$this->config->getInt("combat.kill-title.fade-in", 5),
-			$this->config->getInt("combat.kill-title.stay", 20),
-			$this->config->getInt("combat.kill-title.fade-out", 5)
-		);
-	}
-
-	/**
-	 * Cosmetic strike where the loser fell, sent only to the viewers who want
-	 * to see it. Somebody whose chunks happen to be re-sent within the bolt's
-	 * short lifetime may still catch it, which is harmless.
-	 */
-	private function strikeLightning(Session $victim) : void{
-		if(!$this->config->getBool("combat.lightning-on-kill", true)){
-			return;
-		}
-
-		$location = $victim->getPlayer()->getLocation();
-		$viewers = [];
-		foreach($location->getWorld()->getViewersForPosition($location) as $viewer){
-			$viewerSession = $this->sessions->get($viewer);
-			if($viewerSession !== null && $this->settings->isEnabled($viewerSession, Settings::LIGHTNING_ON_KILL)){
-				$viewers[] = $viewer;
-			}
-		}
-
-		$bolt = new PracticeLightningBolt($location);
-		if(count($viewers) === 0){
-			$bolt->close();
-			return;
-		}
-
-		$bolt->showTo($viewers);
 	}
 
 	private function broadcastDeath(Session $victim, ?Session $killer, ?Arena $arena) : void{

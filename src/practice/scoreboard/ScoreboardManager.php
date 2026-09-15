@@ -8,6 +8,7 @@ use practice\PlaceholderProvider;
 use practice\PracticeConfig;
 use practice\session\Session;
 use practice\session\SessionState;
+use practice\duel\queue\QueueManager;
 use practice\settings\SettingRegistry;
 use practice\settings\Settings;
 use practice\util\Placeholder;
@@ -22,7 +23,8 @@ final class ScoreboardManager{
 	public function __construct(
 		private readonly PracticeConfig $config,
 		private readonly PlaceholderProvider $placeholders,
-		private readonly SettingRegistry $settings
+		private readonly SettingRegistry $settings,
+		private readonly QueueManager $queue
 	){
 	}
 
@@ -38,7 +40,7 @@ final class ScoreboardManager{
 			return;
 		}
 
-		$lines = $this->getLines($session->getState());
+		$lines = $this->getLines($session);
 		if(count($lines) === 0){
 			$scoreboard->remove();
 			return;
@@ -57,10 +59,12 @@ final class ScoreboardManager{
 	/**
 	 * @return string[]
 	 */
-	private function getLines(SessionState $state) : array{
-		$key = match($state){
-			SessionState::LOBBY => "lobby",
+	private function getLines(Session $session) : array{
+		$key = match($session->getState()){
+			//A queued player is still in the lobby, but his sidebar says what he waits for.
+			SessionState::LOBBY => $this->queue->isQueued($session) ? "queue" : "lobby",
 			SessionState::FFA => "ffa",
+			SessionState::DUEL => "duel",
 		};
 
 		$lines = $this->config->getStringList("scoreboard.lines." . $key);

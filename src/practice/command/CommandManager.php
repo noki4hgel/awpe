@@ -6,6 +6,7 @@ namespace practice\command;
 
 use pocketmine\command\Command;
 use practice\command\defaults\KbDataCommand;
+use practice\command\duel\DuelCommand;
 use practice\command\defaults\RankCommand;
 use practice\command\defaults\RekitCommand;
 use practice\command\defaults\SpawnCommand;
@@ -50,8 +51,17 @@ final class CommandManager{
 
 		foreach([
 			//Players
-			new SpawnCommand($config, $sessions, $ffa),
+			new SpawnCommand($config, $sessions, $ffa, $this->plugin->getMatchManager(), $this->plugin->getQueueManager()),
 			new RekitCommand($config, $sessions, $ffa),
+			new DuelCommand(
+				$config,
+				$sessions,
+				$this->plugin->getServer(),
+				$this->plugin->getLadderRegistry(),
+				$this->plugin->getQueueManager(),
+				$this->plugin->getInviteManager(),
+				$this->plugin->getDuelMenu()
+			),
 
 			//Staff
 			new KbDataCommand($config, $ffa),

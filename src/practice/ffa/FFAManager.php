@@ -13,8 +13,8 @@ use pocketmine\world\WorldCreationOptions;
 use practice\Core;
 use practice\form\SimpleForm;
 use practice\kit\Kit;
-use practice\kit\KitFactory;
 use practice\kit\KitIssuer;
+use practice\kit\KitRegistry;
 use practice\lobby\LobbyManager;
 use practice\player\PracticePlayer;
 use practice\PracticeConfig;
@@ -40,9 +40,6 @@ final class FFAManager{
 	/** @var array<string, Arena> */
 	private array $arenas = [];
 
-	/** @var array<string, Kit> */
-	private array $kits = [];
-
 	private readonly GameMode $gameMode;
 	private readonly KnockbackProfile $defaultKnockback;
 	private readonly KnockbackStore $knockbackStore;
@@ -53,12 +50,12 @@ final class FFAManager{
 		private readonly SessionManager $sessions,
 		private readonly LobbyManager $lobby,
 		private readonly KitIssuer $kitIssuer,
+		private readonly KitRegistry $kits,
 		KnockbackStore $knockbackStore
 	){
 		$this->gameMode = PlayerUtil::gameModeFromString($config->getString("ffa.gamemode", "adventure"));
 		$this->defaultKnockback = KnockbackProfile::fromConfig($config->getArray("ffa.knockback"));
 		$this->knockbackStore = $knockbackStore;
-		$this->loadKits();
 		$this->loadArenas();
 	}
 
@@ -78,7 +75,7 @@ final class FFAManager{
 	}
 
 	public function getKit(string $id) : ?Kit{
-		return $this->kits[$id] ?? null;
+		return $this->kits->get($id);
 	}
 
 	public function isInFFA(Player $player) : bool{
@@ -301,15 +298,6 @@ final class FFAManager{
 		});
 
 		$player->sendForm($form);
-	}
-
-	private function loadKits() : void{
-		foreach($this->config->getArray("kits") as $id => $data){
-			if(!is_string($id) || !is_array($data)){
-				continue;
-			}
-			$this->kits[$id] = KitFactory::fromConfig($id, $data);
-		}
 	}
 
 	private function loadArenas() : void{

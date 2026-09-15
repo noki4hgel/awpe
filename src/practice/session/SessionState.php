@@ -11,4 +11,5 @@ namespace practice\session;
 enum SessionState{
 	case LOBBY;
 	case FFA;
+	case DUEL;
 }

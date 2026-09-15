@@ -137,7 +137,7 @@ final class LobbyManager{
 	 * Lays out the configured hotbar. Slots not covered by the config are left
 	 * empty, and the first configured item is selected.
 	 */
-	public function sendItems(Session $session) : void{
+	public function sendItems(Session $session, string $layout = LobbyItemRegistry::LAYOUT_DEFAULT) : void{
 		$player = $session->getPlayer();
 		if(!$player->isConnected()){
 			return;
@@ -147,7 +147,7 @@ final class LobbyManager{
 		$inventory->clearAll();
 
 		$first = null;
-		foreach($this->items->getItems() as $slot => $lobbyItem){
+		foreach($this->items->getItems($layout) as $slot => $lobbyItem){
 			if($slot >= $inventory->getHotbarSize()){
 				//A slot outside the hotbar would be unreachable in adventure mode.
 				continue;

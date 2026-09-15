@@ -7,6 +7,7 @@ namespace practice\leaderboard;
 use pocketmine\math\Vector3;
 use pocketmine\world\particle\FloatingTextParticle;
 use pocketmine\world\World;
+use practice\util\ConfigKeys;
 use function is_numeric;
 use function is_string;
 use function max;
@@ -43,7 +44,8 @@ final class Leaderboard{
 	 * @param array<string, mixed> $data
 	 */
 	public static function fromConfig(string $id, array $data, string $defaultWorld) : self{
-		$number = static fn(string $key, float $default) : float => is_numeric($data[$key] ?? null) ? (float) $data[$key] : $default;
+		//ConfigKeys: YAML reads a bare "y:" as a boolean key, which lost the height.
+		$number = static fn(string $key, float $default) : float => is_numeric(ConfigKeys::get($data, $key)) ? (float) ConfigKeys::get($data, $key) : $default;
 		$text = static fn(string $key, string $default) : string => is_string($data[$key] ?? null) ? $data[$key] : $default;
 
 		return new self(

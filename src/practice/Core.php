@@ -35,6 +35,7 @@ use practice\combat\ClickTracker;
 use practice\combat\CombatListener;
 use practice\combat\CombatLogListener;
 use practice\combat\CombatManager;
+use practice\combat\KillEffects;
 use practice\command\CommandManager;
 use practice\cooldown\CooldownListener;
 use practice\cooldown\CooldownManager;
@@ -42,6 +43,16 @@ use practice\cooldown\ItemCooldowns;
 use practice\cooldown\XpBarCooldown;
 use practice\data\DataProvider;
 use practice\data\DataProviderFactory;
+use practice\duel\arena\ArenaRegistry;
+use practice\duel\DuelListener;
+use practice\duel\DuelMenu;
+use practice\duel\elo\EloCalculator;
+use practice\duel\invite\InviteManager;
+use practice\duel\LadderRegistry;
+use practice\duel\match\MatchManager;
+use practice\duel\queue\Matchmaker;
+use practice\duel\queue\QueueManager;
+use practice\duel\world\WorldCloner;
 use practice\entity\EntityRegistry;
 use practice\entity\PotionSettings;
 use practice\entity\PracticeSplashPotion;
@@ -51,9 +62,11 @@ use practice\ffa\KnockbackStore;
 use practice\item\ItemListener;
 use practice\item\LobbyItemRegistry;
 use practice\item\types\FFASelectorHandler;
-use practice\item\types\PrivateArenaHandler;
+use practice\item\types\DuelsHandler;
+use practice\item\types\LeaveQueueHandler;
 use practice\item\types\SettingsHandler;
 use practice\kit\KitIssuer;
+use practice\kit\KitRegistry;
 use practice\leaderboard\LeaderboardManager;
 use practice\lobby\LobbyListener;
 use practice\lobby\LobbyManager;
@@ -73,6 +86,7 @@ use practice\session\SessionListener;
 use practice\session\SessionManager;
 use practice\settings\SettingRegistry;
 use practice\settings\SettingsMenu;
+use practice\task\DuelTask;
 use practice\task\HeartbeatTask;
 use practice\task\XpBarCooldownTask;
 use practice\world\VoidGenerator;
@@ -109,6 +123,7 @@ final class Core extends PluginBase{
 	private CooldownManager $cooldowns;
 	private ItemCooldowns $itemCooldowns;
 	private KitIssuer $kitIssuer;
+	private KitRegistry $kits;
 	private ClickTracker $clicks;
 	private XpBarCooldown $xpBarCooldown;
 	private RankRegistry $rankRegistry;
@@ -119,6 +134,14 @@ final class Core extends PluginBase{
 	private LobbyManager $lobby;
 	private FFAManager $ffa;
 	private LeaderboardManager $leaderboards;
+	private KillEffects $killEffects;
+	private WorldCloner $worldCloner;
+	private ArenaRegistry $duelArenas;
+	private LadderRegistry $ladders;
+	private MatchManager $matches;
+	private QueueManager $queue;
+	private InviteManager $invites;
+	private DuelMenu $duelMenu;
 	private PlaceholderProvider $placeholders;
 	private ScoreboardManager $scoreboards;
 	private BossBarManager $bossBars;
@@ -176,6 +199,8 @@ final class Core extends PluginBase{
 		$this->itemCooldowns = new ItemCooldowns();
 		$this->clicks = new ClickTracker($this->getServer());
 		$this->kitIssuer = new KitIssuer($this->cooldowns, $this->itemCooldowns);
+		$this->kits = new KitRegistry();
+		$this->kits->loadFromConfig($this->practiceConfig->getArray("kits"));
 		$this->xpBarCooldown = new XpBarCooldown($this->cooldowns, $this->itemCooldowns);
 
 		$this->registerRanks();
@@ -190,15 +215,19 @@ final class Core extends PluginBase{
 			$this->sessions,
 			$this->lobby,
 			$this->kitIssuer,
+			$this->kits,
 			new KnockbackStore(Path::join($dataFolder, self::KNOCKBACK_FILE))
 		);
+
+		$this->killEffects = new KillEffects($this->practiceConfig, $this->sessions, $this->settingRegistry);
+		$this->registerDuels();
 
 		$this->registerLobbyItems();
 		$this->registerItemCooldowns();
 		$this->registerLeaderboards();
 
-		$this->placeholders = new PlaceholderProvider($this->getServer(), $this->practiceConfig, $this->ffa, $this->combat, $this->clicks, $this->ranks);
-		$this->scoreboards = new ScoreboardManager($this->practiceConfig, $this->placeholders, $this->settingRegistry);
+		$this->placeholders = new PlaceholderProvider($this->getServer(), $this->practiceConfig, $this->ffa, $this->combat, $this->clicks, $this->ranks, $this->matches, $this->queue);
+		$this->scoreboards = new ScoreboardManager($this->practiceConfig, $this->placeholders, $this->settingRegistry, $this->queue);
 		$this->bossBars = new BossBarManager($this->practiceConfig, $this->placeholders, $this->settingRegistry);
 		$this->nameTags = new NameTagManager($this->practiceConfig, $this->placeholders, $this->settingRegistry, $this->ranks);
 
@@ -220,6 +249,9 @@ final class Core extends PluginBase{
 			$this->nameTags->remove($session);
 		}
 
+		//Matches first: their players go back to the lobby and the arena copies are
+		//deleted before anything is saved.
+		$this->matches->shutdown();
 		$this->sessions->saveAll();
 		$this->data->close();
 		$this->punishmentStore->close();
@@ -252,6 +284,34 @@ final class Core extends PluginBase{
 
 	public function getKitIssuer() : KitIssuer{
 		return $this->kitIssuer;
+	}
+
+	public function getKitRegistry() : KitRegistry{
+		return $this->kits;
+	}
+
+	public function getWorldCloner() : WorldCloner{
+		return $this->worldCloner;
+	}
+
+	public function getLadderRegistry() : LadderRegistry{
+		return $this->ladders;
+	}
+
+	public function getMatchManager() : MatchManager{
+		return $this->matches;
+	}
+
+	public function getQueueManager() : QueueManager{
+		return $this->queue;
+	}
+
+	public function getInviteManager() : InviteManager{
+		return $this->invites;
+	}
+
+	public function getDuelMenu() : DuelMenu{
+		return $this->duelMenu;
 	}
 
 	public function getCommandManager() : CommandManager{
@@ -351,12 +411,81 @@ final class Core extends PluginBase{
 		$this->settingsMenu = new SettingsMenu($this->practiceConfig, $this->settingRegistry, $this->sessions);
 	}
 
+	/**
+	 * Duels are only offered for ladders that have an arena to play on; the rest
+	 * are hidden and named in the log, so a missing template is noticed rather
+	 * than discovered by a player whose match never starts.
+	 */
+	private function registerDuels() : void{
+		$config = $this->practiceConfig;
+		$logger = $this->getLogger();
+
+		$this->worldCloner = new WorldCloner($this->getServer(), $this->getScheduler(), $logger);
+		$purged = $this->worldCloner->purgeLeftovers();
+		if($purged > 0){
+			$logger->info("Removed $purged duel world(s) left behind by an unclean shutdown.");
+		}
+
+		$this->duelArenas = new ArenaRegistry();
+		foreach($this->duelArenas->loadFromConfig($config->getArray("duels.arenas"), $this->worldCloner->worldsPath()) as $id => $problem){
+			$logger->warning("Duel arena \"$id\" skipped: $problem");
+		}
+
+		$this->ladders = new LadderRegistry();
+		$failed = $this->ladders->loadFromConfig($config->getArray("duels.ladders"), $this->kits, $this->ffa->getDefaultKnockback(), $config->getString("ffa.pot-item"));
+		if(count($failed) > 0){
+			$logger->warning("Ignored duel ladder(s) naming an unknown kit: " . implode(", ", $failed));
+		}
+
+		$unplayable = [];
+		foreach($this->ladders->all() as $ladder){
+			if(!$this->duelArenas->supports($ladder->getId())){
+				$unplayable[] = $ladder->getId();
+			}
+		}
+		$this->ladders->retain(fn(string $id) => $this->duelArenas->supports($id));
+		if(count($unplayable) > 0){
+			$logger->warning("Duel ladder(s) with no arena, hidden until one is configured: " . implode(", ", $unplayable));
+		}
+
+		$this->matches = new MatchManager(
+			$config,
+			$this->lobby,
+			$this->kitIssuer,
+			$this->duelArenas,
+			$this->worldCloner,
+			new EloCalculator(max(1, $config->getInt("duels.ranked.k-factor", 32)), 1),
+			$this->killEffects,
+			$this->combat
+		);
+		$this->queue = new QueueManager(
+			$config,
+			$this->ladders,
+			new Matchmaker(
+				max(0, $config->getInt("duels.ranked.window.start", 50)),
+				max(0, $config->getInt("duels.ranked.window.growth", 25)),
+				max(1, $config->getInt("duels.ranked.window.every", 5)),
+				max(0, $config->getInt("duels.ranked.window.max", 400))
+			),
+			$this->matches,
+			$this->lobby
+		);
+		$this->invites = new InviteManager($config, $this->ladders, $this->matches, $this->queue, $this->settingRegistry);
+		$this->duelMenu = new DuelMenu($config, $this->sessions, $this->ladders, $this->queue, $this->matches, $this->invites);
+
+		$logger->info("Loaded " . count($this->ladders->all()) . " duel ladder(s) on " . count($this->duelArenas->all()) . " arena(s).");
+	}
+
 	private function registerLobbyItems() : void{
 		$this->lobbyItems->register(new FFASelectorHandler($this->ffa, $this->practiceConfig));
-		$this->lobbyItems->register(new PrivateArenaHandler($this->practiceConfig));
+		$this->lobbyItems->register(new DuelsHandler($this->duelMenu));
 		$this->lobbyItems->register(new SettingsHandler($this->settingsMenu));
+		$this->lobbyItems->register(new LeaveQueueHandler($this->queue));
 
-		$failed = $this->lobbyItems->loadFromConfig($this->practiceConfig->getArray("lobby.items"));
+		$failed = [
+			...$this->lobbyItems->loadFromConfig($this->practiceConfig->getArray("lobby.items")),
+			...$this->lobbyItems->loadFromConfig($this->practiceConfig->getArray("lobby.queue-items"), QueueManager::LAYOUT_QUEUE)
+		];
 		if(count($failed) > 0){
 			$this->getLogger()->warning("Ignored lobby item(s) with an unknown action or item: " . implode(", ", $failed));
 		}
@@ -391,7 +520,8 @@ final class Core extends PluginBase{
 			new CooldownListener($this->practiceConfig, $this->cooldowns, $this->itemCooldowns, $this->getScheduler()),
 			new LobbyListener($this->lobby, $this->sessions),
 			new FFAListener($this->ffa),
-			new CombatListener($this->getServer(), $this->practiceConfig, $this->sessions, $this->ffa, $this->combat, $this->settingRegistry, $this->clicks),
+			new CombatListener($this->getServer(), $this->practiceConfig, $this->sessions, $this->ffa, $this->combat, $this->settingRegistry, $this->clicks, $this->killEffects),
+			new DuelListener($this->sessions, $this->matches, $this->queue, $this->invites),
 			new CombatLogListener($this->practiceConfig, $this->combat),
 			//Before the chat rate limiter: both run at LOWEST, and a muted player's
 			//message must be refused as muted rather than start his chat cooldown.
@@ -422,6 +552,8 @@ final class Core extends PluginBase{
 			),
 			$this->practiceConfig->getUpdateInterval()
 		);
+
+		$this->getScheduler()->scheduleRepeatingTask(new DuelTask($this->matches, $this->queue, $this->invites), DuelTask::INTERVAL_TICKS);
 
 		if($this->practiceConfig->getBool("cooldowns.xp-bar.enabled", true)){
 			//Its own task: a bar that only moved once a second would look broken.

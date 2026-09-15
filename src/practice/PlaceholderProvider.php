@@ -7,6 +7,8 @@ namespace practice;
 use pocketmine\Server;
 use practice\combat\ClickTracker;
 use practice\combat\CombatManager;
+use practice\duel\match\MatchManager;
+use practice\duel\queue\QueueManager;
 use practice\ffa\FFAManager;
 use practice\rank\RankManager;
 use practice\session\Session;
@@ -28,7 +30,9 @@ final class PlaceholderProvider{
 		private readonly FFAManager $ffa,
 		private readonly CombatManager $combat,
 		private readonly ClickTracker $clicks,
-		private readonly RankManager $ranks
+		private readonly RankManager $ranks,
+		private readonly MatchManager $matches,
+		private readonly QueueManager $queue
 	){
 	}
 
@@ -39,7 +43,7 @@ final class PlaceholderProvider{
 		$player = $session->getPlayer();
 		$arena = $this->ffa->getArenaOf($session);
 
-		return [
+		$values = [
 			"player" => $player->getName(),
 			"online" => count($this->server->getOnlinePlayers()),
 			"max_online" => $this->server->getMaxPlayers(),
@@ -59,6 +63,13 @@ final class PlaceholderProvider{
 			"rank" => $this->ranks->get($session)?->getDisplay() ?? "",
 			"rank_color" => $this->ranks->get($session)?->getColor() ?? ""
 		];
+
+		$match = $this->matches->getMatchOf($session);
+		$duel = $match === null
+			? ["ladder" => "", "map" => "", "opponent" => "", "opponent_ping" => 0, "duel_time" => "0:00", "ranked_tag" => "", "elo" => 0, "opponent_elo" => 0]
+			: $this->matches->describe($match, $session);
+
+		return $values + $duel + $this->queue->describeFor($session);
 	}
 
 	public function getDeviceName(Session $session) : string{

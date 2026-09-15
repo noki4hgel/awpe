@@ -29,6 +29,8 @@ final class Settings{
 	public const LIGHTNING_ON_KILL = "lightning-on-kill";
 	/** Big "KILL!" banner after taking somebody down. */
 	public const KILL_TITLE = "kill-title";
+	/** Accept duel challenges from other players. */
+	public const DUEL_REQUESTS = "duel-requests";
 
 	private function __construct(){
 		//NOOP

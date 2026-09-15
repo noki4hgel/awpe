@@ -1,6 +1,6 @@
 name: Awpe
 main: practice\Core
-version: 1.5.0
+version: 1.6.0
 api: 5.0.0
 load: POSTWORLD
 author: noki7ngel
@@ -13,6 +13,9 @@ permissions:
   awpe.command.rekit:
     default: true
     description: Get the arena kit again with /rekit
+  awpe.command.duel:
+    default: true
+    description: Challenge players and queue for duels with /duel
   awpe.command.kbdata:
     default: op
     description: Read and change a mode's knockback with /kbdata

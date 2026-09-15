@@ -23,11 +23,19 @@ final class LobbyItemRegistry{
 
 	public const TAG_ACTION = "awpe:action";
 
+	/** The hotbar a player has in the lobby by default. */
+	public const LAYOUT_DEFAULT = "default";
+
 	/** @var array<string, LobbyItemHandler> */
 	private array $handlers = [];
 
-	/** @var array<int, LobbyItem> slot => item */
-	private array $items = [];
+	/**
+	 * Several hotbars can exist side by side — the normal lobby one, and the one
+	 * a player gets while waiting in a queue.
+	 *
+	 * @var array<string, array<int, LobbyItem>> layout => slot => item
+	 */
+	private array $layouts = [];
 
 	public function register(LobbyItemHandler $handler) : void{
 		$this->handlers[$handler->getActionId()] = $handler;
@@ -38,15 +46,15 @@ final class LobbyItemRegistry{
 	}
 
 	/**
-	 * Builds the hotbar from the lobby.items section. Entries whose action has
+	 * Builds one hotbar layout from a config section. Entries whose action has
 	 * no handler, or whose item name is unknown, are skipped.
 	 *
 	 * @param array<string, mixed> $config
 	 *
 	 * @return string[] names of the entries that could not be loaded
 	 */
-	public function loadFromConfig(array $config) : array{
-		$this->items = [];
+	public function loadFromConfig(array $config, string $layout = self::LAYOUT_DEFAULT) : array{
+		$items = [];
 		$failed = [];
 
 		foreach($config as $actionId => $data){
@@ -63,10 +71,11 @@ final class LobbyItemRegistry{
 			}
 
 			$item->getNamedTag()->setTag(self::TAG_ACTION, new StringTag((string) $actionId));
-			$this->items[$slot] = new LobbyItem((string) $actionId, $slot, $item);
+			$items[$slot] = new LobbyItem((string) $actionId, $slot, $item);
 		}
 
-		ksort($this->items);
+		ksort($items);
+		$this->layouts[$layout] = $items;
 
 		return $failed;
 	}
@@ -74,8 +83,8 @@ final class LobbyItemRegistry{
 	/**
 	 * @return array<int, LobbyItem>
 	 */
-	public function getItems() : array{
-		return $this->items;
+	public function getItems(string $layout = self::LAYOUT_DEFAULT) : array{
+		return $this->layouts[$layout] ?? [];
 	}
 
 	/**
