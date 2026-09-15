@@ -75,6 +75,67 @@ chat:
   # Permission that skips both checks. Granted through a rank, not hard-coded.
   bypass-permission: awpe.bypass.chat
 
+punishments:
+  # Used when a command leaves the duration out, e.g. "/ban Steve cheating".
+  # Anything staff can type works here: 30m, 12h, 7d, 2w, 1mo, 1y, or perm.
+  default-duration:
+    ban: 7d
+    mute: 1h
+  # Shown on the ban screen so a player knows where to appeal.
+  appeal: "discord.gg/awpe"
+  # PHP date() format for {created} and {expires}.
+  date-format: "d.m.Y H:i"
+  # Refuse a new account on a device that already carries an active ban.
+  # Matched by DeviceId only: IP addresses are shared too often (mobile
+  # networks, households, school Wi-Fi) and would ban innocent players.
+  device-bans: true
+  history-page-size: 8
+  # Labels used when a duration is shown: "6d 23h".
+  units:
+    year: "y"
+    week: "w"
+    day: "d"
+    hour: "h"
+    minute: "m"
+    second: "s"
+  words:
+    permanent: "permanent"
+    never: "never"
+    console: "Console"
+    no-reason: "no reason given"
+  # {type} - the noun, {action} - what was done.
+  types:
+    ban: "ban"
+    mute: "mute"
+    kick: "kick"
+  actions:
+    ban: "banned"
+    mute: "muted"
+    kick: "kicked"
+  # Disconnect screens. Same placeholders as the punishment messages.
+  screens:
+    ban: |-
+      §c§lYou are banned from AWPE
+
+      §7Reason: §f{reason}
+      §7Duration: §f{duration}
+      §7Expires: §f{expires}
+      §7Ban ID: §f#{id}
+
+      §7Appeal at §b{appeal}
+    device: |-
+      §c§lThis device is banned
+
+      §7An account played on this device is banned §8(#{id})§7.
+      §7Expires: §f{expires}
+
+      §7Appeal at §b{appeal}
+    kick: |-
+      §c§lYou were kicked
+
+      §7Reason: §f{reason}
+      §7By: §f{issuer}
+
 messages:
   join: "§a[+] §f{player}"
   quit: "§4[-] §f{player}"
@@ -125,6 +186,36 @@ messages:
   chat-repeat: "§cYou just said that."
   # Action bar read-out, shown while the player is not in combat.
   cps-counter: "§7CPS: §f{cps}"
+  # Punishments. Placeholders: {id} {player} {type} {action} {reason} {issuer}
+  # {duration} {remaining} {expires} {created} {appeal} {revoked-by} {revoke-reason}
+  punish-broadcast-ban: "§c{player} §7was banned §8({duration})§7: §f{reason}"
+  punish-broadcast-mute: "§c{player} §7was muted §8({duration})§7: §f{reason}"
+  punish-broadcast-kick: "§c{player} §7was kicked: §f{reason}"
+  punish-staff: "§8[§cStaff§8] §f{issuer} §7{action} §f{player} §8#{id} ({duration})§7: §f{reason}"
+  punish-staff-silent: " §8[silent]"
+  punish-staff-revoke: "§8[§cStaff§8] §f{revoked-by} §7lifted the {type} of §f{player} §8#{id}§7: §f{revoke-reason}"
+  punish-issued: "§a{player} §7{action} §8#{id} ({duration})"
+  punish-revoked: "§aLifted the {type} of §f{player} §8#{id}"
+  punish-muted: "§cYou are muted §8#{id}§c. §7Reason: §f{reason} §8| §7Time left: §f{remaining}"
+  punish-unmuted-target: "§aYou are no longer muted."
+  punish-already: "§c{player} is already {action} §8#{id}§c, {remaining} left. §7Lift it first to change it."
+  punish-not-active: "§c{player} has no active {type}."
+  punish-outranked: "§cYou cannot punish §f{player}§c: their rank is not below yours."
+  punish-self: "§cYou cannot punish yourself."
+  punish-not-online: "§c{player} is not online."
+  punish-no-reason: "§cGive a reason."
+  punish-history-header: "§7History of §f{player} §8({count}, page {page}/{pages})"
+  punish-history-entry: "§8#{id} §f{type} {duration} §8| §f{reason} §8| §7{issuer}, {created} "
+  punish-history-empty: "§a{player} has a clean record."
+  punish-status-active: "§c● active, {remaining} left"
+  punish-status-expired: "§8● expired"
+  punish-status-revoked: "§a● lifted by {revoked-by}"
+  usage-ban: "§7Usage: §f/ban <player> [duration] <reason...> [-s]"
+  usage-mute: "§7Usage: §f/mute <player> [duration] <reason...> [-s]"
+  usage-kick: "§7Usage: §f/kick <player> <reason...> [-s]"
+  usage-unban: "§7Usage: §f/unban <player> [reason...]"
+  usage-unmute: "§7Usage: §f/unmute <player> [reason...]"
+  usage-history: "§7Usage: §f/history <player> [page]"
   ffa-arena-unavailable: "§cThis arena is currently unavailable."
   not-in-lobby: "§cYou can only do that from the lobby."
   soon: "§7This feature is coming soon."

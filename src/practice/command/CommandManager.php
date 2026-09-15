@@ -9,6 +9,12 @@ use practice\command\defaults\KbDataCommand;
 use practice\command\defaults\RankCommand;
 use practice\command\defaults\RekitCommand;
 use practice\command\defaults\SpawnCommand;
+use practice\command\punishment\BanCommand;
+use practice\command\punishment\HistoryCommand;
+use practice\command\punishment\KickCommand;
+use practice\command\punishment\MuteCommand;
+use practice\command\punishment\UnbanCommand;
+use practice\command\punishment\UnmuteCommand;
 use practice\Core;
 use function array_merge;
 use function array_unique;
@@ -40,6 +46,7 @@ final class CommandManager{
 		$config = $this->plugin->getPracticeConfig();
 		$sessions = $this->plugin->getSessionManager();
 		$ffa = $this->plugin->getFFAManager();
+		$punishments = $this->plugin->getPunishmentManager();
 
 		foreach([
 			//Players
@@ -48,7 +55,15 @@ final class CommandManager{
 
 			//Staff
 			new KbDataCommand($config, $ffa),
-			new RankCommand($config, $sessions, $this->plugin->getRankManager(), $this->plugin->getServer())
+			new RankCommand($config, $sessions, $this->plugin->getRankManager(), $this->plugin->getServer()),
+
+			//Punishments - these replace the built-in /ban, /kick and /pardon (/unban)
+			new BanCommand($config, $punishments),
+			new MuteCommand($config, $punishments),
+			new KickCommand($config, $punishments),
+			new UnbanCommand($config, $punishments),
+			new UnmuteCommand($config, $punishments),
+			new HistoryCommand($config, $punishments)
 		] as $command){
 			$this->register($command);
 		}

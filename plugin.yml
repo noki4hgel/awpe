@@ -1,6 +1,6 @@
 name: Awpe
 main: practice\Core
-version: 1.4.0
+version: 1.5.0
 api: 5.0.0
 load: POSTWORLD
 author: noki7ngel
@@ -22,3 +22,24 @@ permissions:
   awpe.bypass.chat:
     default: op
     description: Skip the chat cooldown and the repeat check
+  awpe.command.ban:
+    default: op
+    description: Ban players with /ban
+  awpe.command.mute:
+    default: op
+    description: Mute players with /mute
+  awpe.command.kick:
+    default: op
+    description: Kick players with /kick
+  awpe.command.unban:
+    default: op
+    description: Lift bans with /unban
+  awpe.command.unmute:
+    default: op
+    description: Lift mutes with /unmute
+  awpe.command.history:
+    default: op
+    description: Read punishment history with /history
+  awpe.punish.notify:
+    default: op
+    description: See every punishment as it is handed out, silent ones included

@@ -39,6 +39,11 @@ mod:
     - awpe.command.rekit
     - awpe.command.kbdata
     - awpe.bypass.chat
+    - awpe.command.mute
+    - awpe.command.unmute
+    - awpe.command.kick
+    - awpe.command.history
+    - awpe.punish.notify
 
 admin:
   display: '&cAdmin'
@@ -51,6 +56,13 @@ admin:
     - awpe.command.kbdata
     - awpe.bypass.chat
     - awpe.command.rank
+    - awpe.command.mute
+    - awpe.command.unmute
+    - awpe.command.kick
+    - awpe.command.history
+    - awpe.command.ban
+    - awpe.command.unban
+    - awpe.punish.notify
 
 owner:
   display: '&4Owner'
@@ -63,3 +75,10 @@ owner:
     - awpe.command.kbdata
     - awpe.bypass.chat
     - awpe.command.rank
+    - awpe.command.mute
+    - awpe.command.unmute
+    - awpe.command.kick
+    - awpe.command.history
+    - awpe.command.ban
+    - awpe.command.unban
+    - awpe.punish.notify

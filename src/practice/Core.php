@@ -60,6 +60,10 @@ use practice\lobby\LobbyManager;
 use practice\nametag\NameTagManager;
 use practice\player\PlayerFactoryListener;
 use practice\player\PlayerRulesListener;
+use practice\punishment\PunishmentListener;
+use practice\punishment\PunishmentManager;
+use practice\punishment\store\PunishmentStore;
+use practice\punishment\store\PunishmentStoreFactory;
 use practice\rank\RankListener;
 use practice\rank\RankManager;
 use practice\rank\RankRegistry;
@@ -98,6 +102,8 @@ final class Core extends PluginBase{
 
 	private PracticeConfig $practiceConfig;
 	private DataProvider $data;
+	private PunishmentStore $punishmentStore;
+	private PunishmentManager $punishments;
 	private SessionManager $sessions;
 	private CombatManager $combat;
 	private CooldownManager $cooldowns;
@@ -173,6 +179,7 @@ final class Core extends PluginBase{
 		$this->xpBarCooldown = new XpBarCooldown($this->cooldowns, $this->itemCooldowns);
 
 		$this->registerRanks();
+		$this->registerPunishments($dataFolder);
 		$this->registerSettings();
 
 		$this->lobbyItems = new LobbyItemRegistry();
@@ -215,6 +222,7 @@ final class Core extends PluginBase{
 
 		$this->sessions->saveAll();
 		$this->data->close();
+		$this->punishmentStore->close();
 		self::$instance = null;
 	}
 
@@ -256,6 +264,10 @@ final class Core extends PluginBase{
 
 	public function getClickTracker() : ClickTracker{
 		return $this->clicks;
+	}
+
+	public function getPunishmentManager() : PunishmentManager{
+		return $this->punishments;
 	}
 
 	public function getRankManager() : RankManager{
@@ -307,6 +319,23 @@ final class Core extends PluginBase{
 		}
 
 		$this->ranks = new RankManager($this, $this->rankRegistry);
+	}
+
+	private function registerPunishments(string $dataFolder) : void{
+		$this->punishmentStore = PunishmentStoreFactory::create(
+			$this->practiceConfig->getString("storage.provider", DataProviderFactory::TYPE_LEVELDB),
+			$dataFolder,
+			fn(string $reason) => $this->getLogger()->warning("Could not open the punishment LevelDB store; falling back to JSON. Reason: " . $reason)
+		);
+
+		$this->punishments = new PunishmentManager(
+			$this->getServer(),
+			$this->practiceConfig,
+			$this->punishmentStore,
+			$this->sessions,
+			$this->data,
+			$this->ranks
+		);
 	}
 
 	private function registerSettings() : void{
@@ -364,6 +393,9 @@ final class Core extends PluginBase{
 			new FFAListener($this->ffa),
 			new CombatListener($this->getServer(), $this->practiceConfig, $this->sessions, $this->ffa, $this->combat, $this->settingRegistry, $this->clicks),
 			new CombatLogListener($this->practiceConfig, $this->combat),
+			//Before the chat rate limiter: both run at LOWEST, and a muted player's
+			//message must be refused as muted rather than start his chat cooldown.
+			new PunishmentListener($this->punishments),
 			new ChatListener($this->practiceConfig, $this->cooldowns)
 		] as $listener){
 			$pluginManager->registerEvents($listener, $this);

@@ -50,6 +50,14 @@ src/practice/
   chat/
     ChatListener.php        chat rate limit and repeat blocking
 
+  punishment/
+    PunishmentType.php      BAN | MUTE | KICK
+    Punishment.php          one record for every kind; never deleted, only revoked
+    Duration.php            "30m", "7d", "1d12h", "perm" in; "6d 23h" out
+    PunishmentManager.php   punish / revoke / lookups, rank hierarchy, announcements
+    PunishmentListener.php  bans at the door (name and device), mutes in chat
+    store/                  PunishmentStore interface, LevelDB and JSON backends
+
   kit/
     Kit.php                 an immutable loadout
     KitFactory.php          builds kits from config
@@ -63,6 +71,11 @@ src/practice/
       RekitCommand.php      /rekit (alias /kit)
       KbDataCommand.php     /kbdata (alias /kb) - live knockback tuning, op only
       RankCommand.php       /rank - read and assign ranks, op only
+    punishment/
+      PunishCommand.php     shared body of /ban, /mute, /kick
+      RevokeCommand.php     shared body of /unban, /unmute
+      PunishmentInput.php   parses <player> [duration] <reason...> [-s]
+      HistoryCommand.php    /history <player> [page]
 
   item/
     PracticeSplashPotion    item that throws the practice-tuned projectile
@@ -202,6 +215,45 @@ message identical to the player's previous one, comparing case-insensitively
 with runs of whitespace collapsed. Both are skipped by anyone holding
 `chat.bypass-permission`, which staff ranks grant in `ranks.yml`. The check runs
 at `LOWEST`, so a refused message never reaches the rank formatter.
+
+## Punishments
+
+| Command | Example |
+|---|---|
+| `/ban <player> [duration] <reason...> [-s]` | `/ban Steve 7d killaura` |
+| `/mute <player> [duration] <reason...> [-s]` | `/mute Steve 30m spam` |
+| `/kick <player> <reason...> [-s]` | `/kick Steve afk` |
+| `/unban <player> [reason...]` | works for offline players |
+| `/unmute <player> [reason...]` | |
+| `/history <player> [page]` | every punishment, lifted and expired ones included |
+
+Durations are `s m h d w mo y`, combinable (`1d12h`), or `perm`. Leave the duration
+out and `punishments.default-duration` applies. `-s` skips the public announcement;
+anyone with `awpe.punish.notify` still sees it, marked silent. `/ban`, `/kick` and
+`/unban` replace the PocketMine built-ins (`/unban` takes `/pardon` with it).
+
+Design points, most of them lessons from other practice cores:
+
+- **One record type.** A ban and a mute differ in what they block, not in what
+  they are, so both are a `Punishment` with a `PunishmentType`.
+- **Nothing is deleted.** Lifting marks the record revoked with who and why, so
+  `/history` is an audit trail.
+- **Expiry is computed on read**, against the clock. No sweeping task, no window in
+  which a lapsed ban still bites.
+- **Names are keyed lowercase everywhere** — store, lookup and revoke. A mixed-case
+  mismatch between those is how an unban silently fails to persist.
+- **Exact names only.** A prefix match can announce one player and punish another.
+- **Permanent really means permanent** (`expiresAt = null`), not a zero duration
+  that expires instantly.
+- **Rank hierarchy**: staff can only punish players ranked strictly below them.
+- **Every refusal explains itself**: already punished, outranked, not online,
+  missing reason.
+- **Device bans**: the `DeviceId` of every login is linked to the name. A new account
+  on a device that carries an active ban is refused (`punishments.device-bans`).
+  IP addresses are deliberately not used — shared networks would ban innocent
+  players.
+
+Screens (ban, device, kick) and every message are templates in `config.yml`.
 
 ## Settings
 
