@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace practice\item;
 
+use pocketmine\item\EnderPearl as VanillaEnderPearl;
 use pocketmine\item\Item;
 use pocketmine\item\ItemIdentifier;
 use pocketmine\item\ItemTypeIds;
@@ -27,8 +28,16 @@ final class ItemSubstitutions{
 	 * is nothing to swap. Custom name, lore and NBT are carried over.
 	 */
 	public static function convert(Item $item) : Item{
-		if($item instanceof PracticeSplashPotion){
+		if($item instanceof PracticeSplashPotion || $item instanceof PracticeEnderPearl){
 			return $item;
+		}
+
+		if($item instanceof VanillaEnderPearl){
+			$replacement = new PracticeEnderPearl(new ItemIdentifier(ItemTypeIds::ENDER_PEARL), $item->getVanillaName());
+			$replacement->setCount($item->getCount());
+			$replacement->setNamedTag(clone $item->getNamedTag());
+
+			return $replacement;
 		}
 
 		if($item instanceof VanillaSplashPotion){

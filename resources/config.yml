@@ -43,6 +43,12 @@ combat:
   # Vanilla charges 5 fall damage when an ender pearl lands. This switch is
   # separate so real falls can stay lethal while pearls do not hurt.
   disable-ender-pearl-damage: true
+  # Purple particles and the enderman sound a landing pearl plays. The teleport
+  # is obvious without them, and the sound covers the fight.
+  disable-ender-pearl-effects: true
+  # The "whoosh" of a swing that hits nothing. At practice click speeds it is a
+  # constant rattle; the arm still swings for everyone to see.
+  disable-swing-sound: true
   # Cosmetic lightning where a player dies on FFA. Viewers can still turn it
   # off for themselves in the settings menu.
   lightning-on-kill: true
@@ -229,7 +235,20 @@ messages:
   duel-queue-not-queued: "§cYou are not in a queue."
   duel-queue-not-in-lobby: "§cYou can only queue from the lobby."
   duel-queue-unranked-only: "§cThis mode is not played ranked."
-  duel-found: "§aMatch found: §f{opponent} §8| §f{ladder} §8| §7Map: §f{map}{ranked_tag}"
+  # Shown to both players the moment a match is made. Ranked adds the ratings.
+  duel-found: |-
+    §8----------------------------------------
+    §a§lMATCH FOUND
+    §7Opponent §8» §f{opponent} §8| §7Ping §f{opponent_ping}ms
+    §7Mode §8» {ladder} §8| §7Map §8» §f{map}
+    §8----------------------------------------
+  duel-found-ranked: |-
+    §8----------------------------------------
+    §6§lRANKED MATCH FOUND
+    §7Opponent §8» §f{opponent} §8| §7Ping §f{opponent_ping}ms
+    §7Elo §8» §f{elo} §7vs §f{opponent_elo}
+    §7Mode §8» {ladder} §8| §7Map §8» §f{map}
+    §8----------------------------------------
   duel-arena-failed: "§cThe arena could not be prepared. You are back in the lobby."
   duel-cancelled-left: "§c{player} left before the fight started. The match was called off."
   duel-forfeit: "§f{player} §7left the match."
@@ -244,20 +263,34 @@ messages:
   duel-lose-subtitle: "§7vs §f{opponent}"
   duel-draw-title: "§e§lDRAW"
   duel-draw-subtitle: "§7Time ran out"
-  # Summary. {winner} {loser} {duration} {change} {winner_elo} {loser_elo};
-  # per player: {player} {hits} {combo} {damage} (hearts) {pots_left} {pots_thrown}
-  duel-summary-header: "§8§m          §r §f{ladder} §8§m          "
-  duel-summary-result: "§a{winner} §7beat §c{loser} §7in §f{duration}"
-  duel-summary-draw: "§eDraw §7after §f{duration}"
-  duel-summary-elo: "§7Elo: §a{winner} {winner_elo} (+{change}) §8| §c{loser} {loser_elo} (-{change})"
-  duel-summary-player: "§f{player} §8» §7hits §f{hits} §8| §7combo §f{combo} §8| §7dmg §f{damage}❤ §8| §7pots §f{pots_left} §8({pots_thrown} thrown)"
-  duel-summary-player-nopots: "§f{player} §8» §7hits §f{hits} §8| §7combo §f{combo} §8| §7dmg §f{damage}❤"
-  duel-summary-footer: "§8§m                              "
+  # Result card, printed to both players. {winner} {loser} {duration} {change}
+  # {winner_elo} {loser_elo} {ladder} {map} {ranked_tag}; the headline is
+  # written from the reader's own side and also takes {opponent}. Per player:
+  # {player} {hits} {combo} {damage} (hearts) {pots_left} {pots_thrown}, in the
+  # {color} of how that player finished.
+  duel-summary-header: "§8----------------------------------------"
+  duel-summary-title: "{ladder}{ranked_tag} §8| §7Map §f{map} §8| §7Time §f{duration}"
+  duel-summary-you-won: "§a§lVICTORY §8» §7you beat §f{opponent}"
+  duel-summary-you-lost: "§c§lDEFEAT §8» §f{opponent} §7beat you"
+  duel-summary-draw: "§e§lDRAW §8» §7the time ran out"
+  duel-summary-elo: "§7Elo §8» §a{winner} §f{winner_elo} §8[§a+{change}§8] §8| §c{loser} §f{loser_elo} §8[§c-{change}§8]"
+  duel-summary-player: "{color}{player} §8» §7hits §f{hits} §8| §7combo §f{combo} §8| §7dmg §f{damage}❤ §8| §7pots §f{pots_left} §8({pots_thrown} thrown)"
+  duel-summary-player-nopots: "{color}{player} §8» §7hits §f{hits} §8| §7combo §f{combo} §8| §7dmg §f{damage}❤"
+  duel-summary-winner-color: "§a"
+  duel-summary-loser-color: "§c"
+  duel-summary-draw-color: "§f"
+  duel-summary-footer: "§8----------------------------------------"
   # Challenges
-  duel-invite-received: "§f{player} §7challenged you to §f{ladder}§7. §a/duel accept {player} §8| §c/duel deny {player} §8({timeout}s)"
+  duel-invite-received: |-
+    §8----------------------------------------
+    §6§lDUEL CHALLENGE
+    §f{player} §7wants to play {ladder}
+    §a/duel accept {player} §8| §c/duel deny {player}
+    §8Expires in {timeout}s
+    §8----------------------------------------
   duel-invite-toast-title: "§6Duel challenge"
-  duel-invite-toast-body: "§f{player} §7wants to play §f{ladder}"
-  duel-invite-sent: "§7Challenged §f{target} §7to §f{ladder}§7."
+  duel-invite-toast-body: "§f{player} §7wants to play {ladder}"
+  duel-invite-sent: "§7Challenged §f{target} §7to §f{ladder} §8(expires in {timeout}s)"
   duel-invite-accepted: "§f{player} §aaccepted §7your §f{ladder} §7challenge."
   duel-invite-denied: "§f{player} §cdeclined §7your challenge."
   duel-invite-you-denied: "§7Challenge declined."

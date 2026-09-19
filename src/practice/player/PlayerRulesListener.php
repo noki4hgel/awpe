@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace practice\player;
 
+use pocketmine\entity\animation\ArmSwingAnimation;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerExhaustEvent;
 use pocketmine\event\player\PlayerMissSwingEvent;
@@ -43,8 +44,19 @@ final class PlayerRulesListener implements Listener{
 	/**
 	 * A swing that hit nothing still counts towards CPS; landed hits are
 	 * recorded by the combat listener.
+	 *
+	 * Vanilla answers such a swing with a "whoosh", which at practice click
+	 * speeds is a constant rattle. Cancelling the event silences it, but it
+	 * also takes the arm swing with it, so the animation is sent again here -
+	 * an opponent has to see the arm move.
 	 */
 	public function onMissSwing(PlayerMissSwingEvent $event) : void{
-		$this->clicks->record($event->getPlayer());
+		$player = $event->getPlayer();
+		$this->clicks->record($player);
+
+		if($this->config->getBool("combat.disable-swing-sound", true)){
+			$event->cancel();
+			$player->broadcastAnimation(new ArmSwingAnimation($player), $player->getViewers());
+		}
 	}
 }

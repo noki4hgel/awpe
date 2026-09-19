@@ -55,6 +55,7 @@ use practice\duel\queue\QueueManager;
 use practice\duel\world\WorldCloner;
 use practice\entity\EntityRegistry;
 use practice\entity\PotionSettings;
+use practice\entity\PracticeEnderPearl;
 use practice\entity\PracticeSplashPotion;
 use practice\ffa\FFAListener;
 use practice\ffa\FFAManager;
@@ -180,6 +181,7 @@ final class Core extends PluginBase{
 		}
 
 		PracticeSplashPotion::setSettings(PotionSettings::fromConfig($this->practiceConfig->getArray("potions")));
+		PracticeEnderPearl::setSilentTeleport($this->practiceConfig->getBool("combat.disable-ender-pearl-effects", true));
 
 		$this->data = DataProviderFactory::create(
 			$this->practiceConfig->getString("storage.provider", DataProviderFactory::TYPE_LEVELDB),

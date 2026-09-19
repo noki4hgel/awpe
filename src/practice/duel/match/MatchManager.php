@@ -127,7 +127,7 @@ final class MatchManager{
 		$this->matches[$match->getId()] = $match;
 		foreach($match->getParticipants() as $session){
 			$this->byPlayer[spl_object_id($session->getPlayer())] = $match;
-			$this->send($session, "duel-found", $this->describe($match, $session));
+			$this->send($session, $ranked ? "duel-found-ranked" : "duel-found", $this->describe($match, $session));
 		}
 
 		$this->cloner->clone($arena->getTemplateWorld(), WorldCloner::nameFor($match->getId()), function(?World $world) use ($match) : void{
@@ -408,11 +408,18 @@ final class MatchManager{
 		return $change;
 	}
 
+	/**
+	 * Prints the result card. Both players get the same statistics, but the
+	 * headline is written from the reader's own side - "you beat him" reads
+	 * better than a third-person report of a fight one was just in.
+	 */
 	private function sendSummary(DuelMatch $match, ?Session $winner, ?Session $loser, ?int $eloChange) : void{
 		$ladder = $match->getLadder();
 		$elapsed = $match->getFightStartedAt() > 0 ? time() - $match->getFightStartedAt() : 0;
 		$base = [
 			"ladder" => $ladder->getDisplay(),
+			"map" => $match->getArena()->getDisplay(),
+			"ranked_tag" => $match->isRanked() ? $this->config->getMessage("duel-ranked-tag") : "",
 			"duration" => self::clock($elapsed),
 			"winner" => $winner?->getName() ?? "",
 			"loser" => $loser?->getName() ?? "",
@@ -421,37 +428,69 @@ final class MatchManager{
 			"loser_elo" => $loser?->getData()->getDuelElo($ladder->getId(), $this->startingElo()) ?? 0
 		];
 
-		$lines = [$this->config->getMessage("duel-summary-header")];
-		$lines[] = $this->config->getMessage($winner === null ? "duel-summary-draw" : "duel-summary-result");
-		if($eloChange !== null){
-			$lines[] = $this->config->getMessage("duel-summary-elo");
+		$statLines = [];
+		foreach($this->summaryOrder($match, $winner) as $session){
+			$statLines[] = $this->statLine($match, $session, $winner);
 		}
-		$lines = Placeholder::applyAll($lines, $base);
-
-		$playerLine = $this->config->getMessage($ladder->getPotItem() === null ? "duel-summary-player-nopots" : "duel-summary-player");
-		foreach($match->getParticipants() as $session){
-			$stats = $match->getStats($session);
-			$lines[] = Placeholder::apply($playerLine, [
-				"player" => $session->getName(),
-				"hits" => $stats->getHits(),
-				"combo" => $stats->getLongestCombo(),
-				"damage" => sprintf("%.1f", round($stats->getDamage() / 2, 1)),
-				"pots_thrown" => $stats->getPotsThrown(),
-				"pots_left" => $this->countPots($session, $ladder)
-			]);
-		}
-		$lines[] = $this->config->getMessage("duel-summary-footer");
 
 		foreach($match->getParticipants() as $session){
-			if(!$session->getPlayer()->isConnected()){
+			$player = $session->getPlayer();
+			if(!$player->isConnected()){
 				continue;
 			}
+
+			$lines = [
+				$this->config->getMessage("duel-summary-header"),
+				$this->config->getMessage("duel-summary-title"),
+				$this->config->getMessage($winner === null ? "duel-summary-draw" : ($session === $winner ? "duel-summary-you-won" : "duel-summary-you-lost"))
+			];
+			if($eloChange !== null){
+				$lines[] = $this->config->getMessage("duel-summary-elo");
+			}
+
+			$lines = Placeholder::applyAll($lines, $base + ["opponent" => $match->getOpponent($session)->getName()]);
+			foreach($statLines as $statLine){
+				$lines[] = $statLine;
+			}
+			$lines[] = $this->config->getMessage("duel-summary-footer");
+
 			foreach($lines as $line){
 				if($line !== ""){
-					$session->getPlayer()->sendMessage($line);
+					$player->sendMessage($line);
 				}
 			}
 		}
+	}
+
+	/**
+	 * The winner's statistics go first; a draw keeps the match order.
+	 *
+	 * @return Session[]
+	 */
+	private function summaryOrder(DuelMatch $match, ?Session $winner) : array{
+		$participants = $match->getParticipants();
+
+		return $winner === null || $participants[0] === $winner ? $participants : [$winner, $match->getOpponent($winner)];
+	}
+
+	private function statLine(DuelMatch $match, Session $session, ?Session $winner) : string{
+		$ladder = $match->getLadder();
+		$stats = $match->getStats($session);
+		$color = match(true){
+			$winner === null => "duel-summary-draw-color",
+			$session === $winner => "duel-summary-winner-color",
+			default => "duel-summary-loser-color"
+		};
+
+		return Placeholder::apply($this->config->getMessage($ladder->getPotItem() === null ? "duel-summary-player-nopots" : "duel-summary-player"), [
+			"color" => $this->config->getMessage($color),
+			"player" => $session->getName(),
+			"hits" => $stats->getHits(),
+			"combo" => $stats->getLongestCombo(),
+			"damage" => sprintf("%.1f", round($stats->getDamage() / 2, 1)),
+			"pots_thrown" => $stats->getPotsThrown(),
+			"pots_left" => $this->countPots($session, $ladder)
+		]);
 	}
 
 	private function close(DuelMatch $match) : void{

@@ -38,6 +38,16 @@ final class EntityRegistry{
 		);
 
 		$factory->register(
+			PracticeEnderPearl::class,
+			static fn(World $world, CompoundTag $nbt) : PracticeEnderPearl => new PracticeEnderPearl(
+				EntityDataHelper::parseLocation($nbt, $world),
+				null,
+				$nbt
+			),
+			["awpe:ender_pearl"]
+		);
+
+		$factory->register(
 			PracticeLightningBolt::class,
 			static fn(World $world, CompoundTag $nbt) : PracticeLightningBolt => new PracticeLightningBolt(
 				EntityDataHelper::parseLocation($nbt, $world),

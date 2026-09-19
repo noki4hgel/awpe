@@ -114,6 +114,7 @@ src/practice/
     LobbyItemHandler.php    interface implemented by item/types/*
     ItemListener.php        turns a tap into the bound action
     types/                  FFA selector (axe), duels (sword), leave queue (dye), settings (book)
+    PracticeEnderPearl      pearl item that throws the silent projectile
 
   data/
     PlayerData.php          one record per player: counters, rank, settings
@@ -142,6 +143,7 @@ src/practice/
 
   entity/
     PracticeSplashPotion    splash potion with practice potency
+    PracticeEnderPearl      pearl that teleports without particles or sound
     PotionSettings.php      range / full-effect range / physics
     PracticeLightningBolt   cosmetic strike, shown per viewer
     EntityRegistry.php      registers both with the server
@@ -195,6 +197,21 @@ core measures from the feet and gives the full effect inside
 `potions.full-effect-range`, which is the behaviour practice players expect.
 `ItemParser` swaps every vanilla splash potion for the practice one, so kits and
 the pot counter never have to know.
+
+## Noise
+
+Two vanilla sounds are off by default, because at practice click speeds they
+stop being feedback and turn into a rattle:
+
+| switch | what it silences |
+|---|---|
+| `combat.disable-swing-sound` | the "whoosh" of a swing that hits nothing |
+| `combat.disable-ender-pearl-effects` | the particles and the enderman sound of a landing pearl |
+
+A silenced swing still **animates**: the miss event is what carries the sound,
+and cancelling it would take the arm swing with it, so the animation is sent
+again by hand — an opponent has to see the arm move. The pearl keeps its landing
+damage, which has a switch of its own (`combat.disable-ender-pearl-damage`).
 
 ## Ranks
 
@@ -324,8 +341,10 @@ seconds) -> both back to the lobby, the copy discarded.
 - `time-limit` runs out as a draw.
 - `rules.no-damage` (Sumo) cancels the damage but keeps the hit, so knockback and
   the attack cooldown behave exactly as usual.
-- Both players get a summary: hits, longest combo, damage, pots left and thrown,
-  and on ranked the Elo change.
+- Both players get the same result card — ladder, map, time, both sets of
+  statistics (hits, longest combo, damage, pots left and thrown), and on ranked
+  the Elo change — but the headline is written from the reader's own side:
+  "you beat him", not a third-person report of a fight one was just in.
 
 **Leaving early** (quitting or `/spawn`) is judged by how far the match got. While
 the world is still being prepared the match is called off. During the countdown an
