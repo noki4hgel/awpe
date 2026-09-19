@@ -224,6 +224,8 @@ messages:
   usage-history: "§7Usage: §f/history <player> [page]"
   # Duels. Placeholders: {ladder} {map} {opponent} {opponent_ping} {duel_time}
   # {elo} {opponent_elo} {ranked_tag}; queue: {queue_ladder} {queue_mode} {queue_time}
+  # The rule drawn above and below every duel card, as {bar}.
+  duel-bar: "§8\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000"
   duel-mode-unranked: "§aUnranked"
   duel-mode-ranked: "§6Ranked"
   duel-ranked-tag: " §8[§6Ranked§8]"
@@ -237,18 +239,18 @@ messages:
   duel-queue-unranked-only: "§cThis mode is not played ranked."
   # Shown to both players the moment a match is made. Ranked adds the ratings.
   duel-found: |-
-    §8----------------------------------------
+    {bar}
     §a§lMATCH FOUND
     §7Opponent §8» §f{opponent} §8| §7Ping §f{opponent_ping}ms
     §7Mode §8» {ladder} §8| §7Map §8» §f{map}
-    §8----------------------------------------
+    {bar}
   duel-found-ranked: |-
-    §8----------------------------------------
+    {bar}
     §6§lRANKED MATCH FOUND
     §7Opponent §8» §f{opponent} §8| §7Ping §f{opponent_ping}ms
     §7Elo §8» §f{elo} §7vs §f{opponent_elo}
     §7Mode §8» {ladder} §8| §7Map §8» §f{map}
-    §8----------------------------------------
+    {bar}
   duel-arena-failed: "§cThe arena could not be prepared. You are back in the lobby."
   duel-cancelled-left: "§c{player} left before the fight started. The match was called off."
   duel-forfeit: "§f{player} §7left the match."
@@ -266,28 +268,50 @@ messages:
   # Result card, printed to both players. {winner} {loser} {duration} {change}
   # {winner_elo} {loser_elo} {ladder} {map} {ranked_tag}; the headline is
   # written from the reader's own side and also takes {opponent}. Per player:
-  # {player} {hits} {combo} {damage} (hearts) {pots_left} {pots_thrown}, in the
-  # {color} of how that player finished.
-  duel-summary-header: "§8----------------------------------------"
+  # {player} {hits} {combo} {damage} (hearts) {pots_left} {pots_thrown}
+  # {accuracy} {criticals}, in the {color} of how that player finished.
+  #
+  # The bars and the heart come from the resource pack: U+E000 is a thin rule
+  # one character wide, so a run of them draws one unbroken line, and U+E102 is
+  # the heart. Players who declined the pack see boxes instead - force the pack
+  # in resource_packs.yml if that matters.
+  duel-summary-header: "{bar}"
   duel-summary-title: "{ladder}{ranked_tag} §8| §7Map §f{map} §8| §7Time §f{duration}"
   duel-summary-you-won: "§a§lVICTORY §8» §7you beat §f{opponent}"
   duel-summary-you-lost: "§c§lDEFEAT §8» §f{opponent} §7beat you"
   duel-summary-draw: "§e§lDRAW §8» §7the time ran out"
   duel-summary-elo: "§7Elo §8» §a{winner} §f{winner_elo} §8[§a+{change}§8] §8| §c{loser} §f{loser_elo} §8[§c-{change}§8]"
-  duel-summary-player: "{color}{player} §8» §7hits §f{hits} §8| §7combo §f{combo} §8| §7dmg §f{damage}❤ §8| §7pots §f{pots_left} §8({pots_thrown} thrown)"
-  duel-summary-player-nopots: "{color}{player} §8» §7hits §f{hits} §8| §7combo §f{combo} §8| §7dmg §f{damage}❤"
+  # One block per player. Free-form: drop a line, reorder them, write your own
+  # labels. A line holding a single space prints as a blank one.
+  duel-summary-stats:
+    - " "
+    - "{color}{player}§7's Match Statistics"
+    - "§7Hits§8: §f{hits}"
+    - "§7Damage§8: §f{damage} §f\uE102"
+    - "§7Combo§8: §f{combo}"
+    - "§7Pots§8: §f{pots_left} §8({pots_thrown} thrown)"
+    - "§7Potion accuracy§8: §f{accuracy}%"
+    - "§7Criticals§8: §f{criticals}"
+  # Ladders with no pot item (Fist, Sumo) use this list instead.
+  duel-summary-stats-nopots:
+    - " "
+    - "{color}{player}§7's Match Statistics"
+    - "§7Hits§8: §f{hits}"
+    - "§7Damage§8: §f{damage} §f\uE102"
+    - "§7Combo§8: §f{combo}"
+    - "§7Criticals§8: §f{criticals}"
   duel-summary-winner-color: "§a"
   duel-summary-loser-color: "§c"
   duel-summary-draw-color: "§f"
-  duel-summary-footer: "§8----------------------------------------"
+  duel-summary-footer: "\n{bar}"
   # Challenges
   duel-invite-received: |-
-    §8----------------------------------------
+    {bar}
     §6§lDUEL CHALLENGE
     §f{player} §7wants to play {ladder}
     §a/duel accept {player} §8| §c/duel deny {player}
     §8Expires in {timeout}s
-    §8----------------------------------------
+    {bar}
   duel-invite-toast-title: "§6Duel challenge"
   duel-invite-toast-body: "§f{player} §7wants to play {ladder}"
   duel-invite-sent: "§7Challenged §f{target} §7to §f{ladder} §8(expires in {timeout}s)"

@@ -252,6 +252,7 @@ final class MatchManager{
 		$elapsed = $match->getFightStartedAt() > 0 ? time() - $match->getFightStartedAt() : 0;
 
 		return [
+			"bar" => $this->config->getMessage("duel-bar"),
 			"ladder" => $match->getLadder()->getDisplay(),
 			"map" => $match->getArena()->getDisplay(),
 			"opponent" => $opponent->getName(),
@@ -417,6 +418,7 @@ final class MatchManager{
 		$ladder = $match->getLadder();
 		$elapsed = $match->getFightStartedAt() > 0 ? time() - $match->getFightStartedAt() : 0;
 		$base = [
+			"bar" => $this->config->getMessage("duel-bar"),
 			"ladder" => $ladder->getDisplay(),
 			"map" => $match->getArena()->getDisplay(),
 			"ranked_tag" => $match->isRanked() ? $this->config->getMessage("duel-ranked-tag") : "",
@@ -430,7 +432,9 @@ final class MatchManager{
 
 		$statLines = [];
 		foreach($this->summaryOrder($match, $winner) as $session){
-			$statLines[] = $this->statLine($match, $session, $winner);
+			foreach($this->statLines($match, $session, $winner) as $line){
+				$statLines[] = $line;
+			}
 		}
 
 		foreach($match->getParticipants() as $session){
@@ -473,7 +477,14 @@ final class MatchManager{
 		return $winner === null || $participants[0] === $winner ? $participants : [$winner, $match->getOpponent($winner)];
 	}
 
-	private function statLine(DuelMatch $match, Session $session, ?Session $winner) : string{
+	/**
+	 * One player's block of the card. Which lines it holds is up to config:
+	 * ladders without pots get a list of their own, so a Fist summary does not
+	 * report potion accuracy nobody could have.
+	 *
+	 * @return string[]
+	 */
+	private function statLines(DuelMatch $match, Session $session, ?Session $winner) : array{
 		$ladder = $match->getLadder();
 		$stats = $match->getStats($session);
 		$color = match(true){
@@ -482,12 +493,19 @@ final class MatchManager{
 			default => "duel-summary-loser-color"
 		};
 
-		return Placeholder::apply($this->config->getMessage($ladder->getPotItem() === null ? "duel-summary-player-nopots" : "duel-summary-player"), [
+		$lines = [];
+		foreach($this->config->getArray($ladder->getPotItem() === null ? "messages.duel-summary-stats-nopots" : "messages.duel-summary-stats") as $line){
+			$lines[] = (string) $line;
+		}
+
+		return Placeholder::applyAll($lines, [
 			"color" => $this->config->getMessage($color),
 			"player" => $session->getName(),
 			"hits" => $stats->getHits(),
 			"combo" => $stats->getLongestCombo(),
 			"damage" => sprintf("%.1f", round($stats->getDamage() / 2, 1)),
+			"criticals" => $stats->getCriticals(),
+			"accuracy" => sprintf("%.2f", $stats->getPotionAccuracy()),
 			"pots_thrown" => $stats->getPotsThrown(),
 			"pots_left" => $this->countPots($session, $ladder)
 		]);

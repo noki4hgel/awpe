@@ -79,6 +79,7 @@ final class InviteManager{
 		$this->lastSent[$pairKey] = $now;
 
 		$values = [
+			"bar" => $this->config->getMessage("duel-bar"),
 			"player" => $from->getName(),
 			"target" => $to->getName(),
 			"ladder" => $ladder->getDisplay(),

@@ -49,7 +49,7 @@ src/practice/
     match/
       DuelMatch.php         two players, a ladder, an arena copy, a state, per-player stats
       MatchState.php        PREPARING -> COUNTDOWN -> FIGHTING -> ENDING -> CLOSED
-      MatchStats.php        hits, damage, longest combo, pots thrown
+      MatchStats.php        hits, damage, longest combo, criticals, potting accuracy
       MatchManager.php      the whole lifecycle: start, countdown, result, Elo, forfeit, cleanup
     queue/
       QueueEntry.php        who waits for what, since when, at which rating
@@ -213,6 +213,13 @@ and cancelling it would take the arm swing with it, so the animation is sent
 again by hand — an opponent has to see the arm move. The pearl keeps its landing
 damage, which has a switch of its own (`combat.disable-ender-pearl-damage`).
 
+A pearl also **arrives in one step**. The thrower's own client is told to
+teleport, but viewers only get a position update, and their client smooths that
+jump into a walk — the thrower appears to moonwalk across the map. The entity
+packet has a flag against this which the server deliberately leaves off (clients
+mishandle it), so `PlayerUtil::teleportInstantly()` sends viewers the same player
+packet their client uses for its own teleports.
+
 ## Ranks
 
 `ranks.yml` defines the ladder; the lowest `priority` is the default rank. A
@@ -341,10 +348,34 @@ seconds) -> both back to the lobby, the copy discarded.
 - `time-limit` runs out as a draw.
 - `rules.no-damage` (Sumo) cancels the damage but keeps the hit, so knockback and
   the attack cooldown behave exactly as usual.
-- Both players get the same result card — ladder, map, time, both sets of
-  statistics (hits, longest combo, damage, pots left and thrown), and on ranked
-  the Elo change — but the headline is written from the reader's own side:
-  "you beat him", not a third-person report of a fight one was just in.
+- Both players get the same result card — ladder, map, time, a statistics block
+  each, and on ranked the Elo change — but the headline is written from the
+  reader's own side: "you beat him", not a third-person report of a fight one
+  was just in.
+
+### The result card
+
+Which lines a block holds is config, not code: `messages.duel-summary-stats` is
+a free-form list, and ladders without a pot item use
+`duel-summary-stats-nopots`, so a Fist summary never reports potion accuracy
+nobody could have had.
+
+Two of the numbers deserve a definition:
+
+- **Potion accuracy** is the average share of a potion the thrower gave
+  *himself*, over every pot he threw. A pot at his feet counts in full, one
+  landing behind him counts for nothing, and one thrown into the void still
+  counts against him. Counting hits and misses instead would hide exactly the
+  difference that separates two players who never miss outright — so the number
+  is asked of the potion itself, and it is the one that was really applied.
+- **Criticals** are hits vanilla scored as critical: falling, not sprinting, not
+  flying, not in water.
+
+The rules above and below every duel card (`messages.duel-bar`) are **U+E000
+from the resource pack** — one thin rule per character, so a run of them draws
+one unbroken line — and the heart in the damage line is U+E102. They are pulled
+into the cards as `{bar}`, so the rule is defined once. Players who declined the
+pack see boxes instead; `force_resources` in `resource_packs.yml` settles that.
 
 **Leaving early** (quitting or `/spawn`) is judged by how far the match got. While
 the world is still being prepared the match is called off. During the countdown an

@@ -9,6 +9,8 @@ use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
+use pocketmine\event\entity\ProjectileHitEntityEvent;
+use pocketmine\event\entity\ProjectileHitEvent;
 use pocketmine\event\entity\ProjectileLaunchEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerDropItemEvent;
@@ -19,6 +21,7 @@ use practice\duel\invite\InviteManager;
 use practice\duel\match\DuelMatch;
 use practice\duel\match\MatchManager;
 use practice\duel\queue\QueueManager;
+use practice\entity\PracticeSplashPotion;
 use practice\session\SessionManager;
 
 /**
@@ -84,7 +87,11 @@ final class DuelListener implements Listener{
 				$event->setModifier(-$event->getFinalDamage(), self::MODIFIER_NO_DAMAGE);
 			}
 
-			$match->getStats($damagerSession)->recordHit($event->getFinalDamage());
+			$stats = $match->getStats($damagerSession);
+			$stats->recordHit($event->getFinalDamage());
+			if($event->getModifier(EntityDamageEvent::MODIFIER_CRITICAL) > 0){
+				$stats->recordCritical();
+			}
 			$match->getStats($session)->breakCombo();
 		}
 
@@ -123,6 +130,28 @@ final class DuelListener implements Listener{
 		if($match !== null && $session !== null && $match->isFighting()){
 			$match->getStats($session)->recordPotThrown();
 		}
+	}
+
+	/**
+	 * Rates the throw the moment the potion lands: how much of it the thrower
+	 * gave himself. Asking the potion keeps the summary honest - it is the
+	 * same number that was applied to him.
+	 */
+	public function onProjectileHit(ProjectileHitEvent $event) : void{
+		$potion = $event->getEntity();
+		$thrower = $potion->getOwningEntity();
+		if(!$potion instanceof PracticeSplashPotion || !$thrower instanceof Player){
+			return;
+		}
+
+		$match = $this->matchOf($thrower);
+		$session = $this->sessions->get($thrower);
+		if($match === null || $session === null || !$match->isFighting()){
+			return;
+		}
+
+		$directHit = $event instanceof ProjectileHitEntityEvent && $event->getEntityHit() === $thrower;
+		$match->getStats($session)->recordPotLanded($potion->potencyFor($thrower, $directHit));
 	}
 
 	/**

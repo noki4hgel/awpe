@@ -59,6 +59,25 @@ final class PracticeSplashPotion extends SplashPotion{
 		return self::getSettings()->getDrag();
 	}
 
+	/**
+	 * How much of this potion an entity gets where it is standing: 1.0 inside
+	 * the full-effect range, fading to 0 at the edge. A direct hit always
+	 * counts as a full one.
+	 *
+	 * Public because the duel summary rates a player's potting by it, and the
+	 * number has to be the one that was actually applied.
+	 */
+	public function potencyFor(Entity $entity, bool $directHit) : float{
+		if($directHit){
+			return 1.0;
+		}
+
+		$settings = self::getSettings();
+		$distanceSquared = $entity->getPosition()->distanceSquared($this->location);
+
+		return $distanceSquared > $settings->getRange() ** 2 ? 0.0 : $settings->potencyAt(sqrt($distanceSquared));
+	}
+
 	protected function onHit(ProjectileHitEvent $event) : void{
 		$effects = $this->getPotionEffects();
 		if(count($effects) === 0){
@@ -90,15 +109,7 @@ final class PracticeSplashPotion extends SplashPotion{
 				continue;
 			}
 
-			$distanceSquared = $entity->getPosition()->distanceSquared($this->location);
-			if($distanceSquared > $range ** 2){
-				continue;
-			}
-
-			$potency = $settings->potencyAt(sqrt($distanceSquared));
-			if($event instanceof ProjectileHitEntityEvent && $entity === $event->getEntityHit()){
-				$potency = 1.0;
-			}
+			$potency = $this->potencyFor($entity, $event instanceof ProjectileHitEntityEvent && $entity === $event->getEntityHit());
 			if($potency <= 0){
 				continue;
 			}
