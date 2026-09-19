@@ -372,10 +372,18 @@ Two of the numbers deserve a definition:
   flying, not in water.
 
 The rules above and below every duel card (`messages.duel-bar`) are **U+E000
-from the resource pack** — one thin rule per character, so a run of them draws
-one unbroken line — and the heart in the damage line is U+E102. They are pulled
-into the cards as `{bar}`, so the rule is defined once. Players who declined the
-pack see boxes instead; `force_resources` in `resource_packs.yml` settles that.
+from the resource pack**, and the heart in the damage line is U+E102. One U+E000
+already draws a rule about 25 characters wide — the glyph is a line half a cell
+wide on a 4096px sheet — so the bar is a single character, not a run of them.
+They are pulled into the cards as `{bar}`, so the rule is defined once. Players
+who declined the pack see a box instead; `force_resources` in
+`resource_packs.yml` settles that.
+
+The pack ships a `ui/scoreboards.json` that re-lays the sidebar into a clamped
+170px panel and mangles the core scoreboard, so it is removed from the copy in
+`resource_packs/` (the original is kept beside it as
+`potlounge_with_scoreboard.zip.bak`). Its font, sounds, capes and form skin are
+untouched.
 
 **Leaving early** (quitting or `/spawn`) is judged by how far the match got. While
 the world is still being prepared the match is called off. During the countdown an

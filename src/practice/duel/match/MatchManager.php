@@ -451,12 +451,14 @@ final class MatchManager{
 			if($eloChange !== null){
 				$lines[] = $this->config->getMessage("duel-summary-elo");
 			}
-
-			$lines = Placeholder::applyAll($lines, $base + ["opponent" => $match->getOpponent($session)->getName()]);
 			foreach($statLines as $statLine){
 				$lines[] = $statLine;
 			}
 			$lines[] = $this->config->getMessage("duel-summary-footer");
+
+			//Every line at once: the frame carries placeholders too, and the
+			//statistics have had theirs filled in already.
+			$lines = Placeholder::applyAll($lines, $base + ["opponent" => $match->getOpponent($session)->getName()]);
 
 			foreach($lines as $line){
 				if($line !== ""){

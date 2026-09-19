@@ -224,8 +224,10 @@ messages:
   usage-history: "§7Usage: §f/history <player> [page]"
   # Duels. Placeholders: {ladder} {map} {opponent} {opponent_ping} {duel_time}
   # {elo} {opponent_elo} {ranked_tag}; queue: {queue_ladder} {queue_mode} {queue_time}
-  # The rule drawn above and below every duel card, as {bar}.
-  duel-bar: "§8\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000\uE000"
+  # The rule drawn above and below every duel card, as {bar}. One U+E000 from
+  # the resource pack is already about 25 characters wide, so one is a full
+  # rule; add more only if you want a wider one.
+  duel-bar: "§8\uE000"
   duel-mode-unranked: "§aUnranked"
   duel-mode-ranked: "§6Ranked"
   duel-ranked-tag: " §8[§6Ranked§8]"
